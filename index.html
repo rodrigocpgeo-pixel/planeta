@@ -1,16 +1,3 @@
-O problema das siglas e ícones inconsistentes no seu código acontece por dois motivos:
-
-1. **No dicionário (`countryDataPT`):** Alguns emojis de bandeira estavam gravados incorretamente como caracteres de texto simples (ex: `"🇨ℤ"` em vez de `🇦🇹` ou `"🇲ℤ"` para Moçambique), fazendo o navegador exibir siglas alfabéticas fallback como `CZ`, `MZ`, `LR`, `SZ`, etc.
-2. **Nas gavetas/bandeja da esquerda (`populateTray`):** A estrutura HTML do *card* inseria redundância ao colocar elementos condicionalmente para telas grandes/pequenas que exibiam o nome completo + emoji repetido.
-
-Para resolver isso, os ajustes necessários foram realizados:
-
-* Correção de **todas as bandeiras no dicionário de dados (`countryDataPT`)** para emojis Unicode válidos (Regional Indicator Symbols).
-* Limpeza do HTML da **bandeja de países (`populateTray`)**, garantindo que o card da lista exiba **exclusivamente o emoji da bandeira** para o país, e ao passar o mouse / visualizar, apareça **exclusivamente o nome em português**.
-
-Abaixo está o código completo atualizado e corrigido:
-
-```html
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -61,7 +48,6 @@ Abaixo está o código completo atualizado e corrigido:
             </div>
             
             <div class="flex items-center gap-3 flex-wrap">
-                <!-- Controle de Mudo de Áudio -->
                 <button onclick="toggleMute()" id="muteBtn" class="px-3 py-1.5 bg-slate-900 hover:bg-slate-850 border border-slate-800 rounded-xl text-xs font-bold text-slate-300 flex items-center gap-1.5 transition-all">
                     <i class="fa-solid fa-volume-high text-sky-400" id="muteIcon"></i> <span id="muteText">Som Ativo</span>
                 </button>
@@ -92,6 +78,7 @@ Abaixo está o código completo atualizado e corrigido:
                 </div>
             </div>
 
+            <!-- Card de Descoberta à esquerda (Exibe apenas Emoji da Bandeira e Nome ao encaixar) -->
             <div id="discoveryCard" class="bg-slate-950 border border-slate-900 p-5 rounded-2xl shadow-lg flex-1 flex flex-col justify-between min-h-[220px] transition-all">
                 <div id="discoveryEmpty" class="flex-1 flex flex-col items-center justify-center text-center py-8">
                     <div class="w-14 h-14 bg-slate-900/60 rounded-full border border-slate-800/50 flex items-center justify-center mb-4 text-slate-500 animate-pulse">
@@ -102,7 +89,7 @@ Abaixo está o código completo atualizado e corrigido:
                 </div>
 
                 <div id="discoveryInfo" class="hidden flex-1 flex flex-col gap-4 items-center justify-center text-center py-6">
-                    <span id="discFlag" class="text-5xl p-3 bg-slate-900 rounded-2xl border border-slate-800/50 shadow-inner">🇺🇳</span>
+                    <span id="discFlag" class="text-5xl p-3 bg-slate-900 rounded-2xl border border-slate-800/50 shadow-inner">🌐</span>
                     <div>
                         <h3 id="discName" class="text-xl font-black text-white leading-tight">Nome do País</h3>
                         <p class="text-[10px] font-bold text-sky-400 uppercase tracking-widest mt-2"><i class="fa-solid fa-map-location-dot"></i> <span id="discRegion">Continente</span></p>
@@ -174,6 +161,7 @@ Abaixo está o código completo atualizado e corrigido:
                             <button onclick="setContinentFilter('Antarctica')" id="tab-Antarctica" class="px-2 py-1 rounded bg-slate-950/40 hover:bg-slate-950 shrink-0">Antártida</button>
                         </div>
                     </div>
+                    <!-- Gaveta de países (Somente nomes em Português) -->
                     <div id="piecesTray" class="flex lg:flex-col flex-row gap-2 overflow-x-auto lg:overflow-y-auto lg:overflow-x-hidden flex-1 max-h-[140px] lg:max-h-[460px] p-1 custom-scroll"></div>
                 </div>
 
@@ -219,7 +207,7 @@ Abaixo está o código completo atualizado e corrigido:
     </footer>
 
     <script>
-        /* Mapeamento de metadados dos países indexados por código ISO-3/ADM0 com bandeiras corrigidas */
+        /* Mapeamento dos países com bandeiras corrigidas em Unicode */
         const countryDataPT = {
             "RUS": { nome: "Rússia", capital: "Moscou", gentilico: "Russo", flag: "🇷🇺" },
             "GBR": { nome: "Reino Unido", capital: "Londres", gentilico: "Britânico", flag: "🇬🇧" },
@@ -265,7 +253,7 @@ Abaixo está o código completo atualizado e corrigido:
             "HTI": { nome: "Haiti", capital: "Porto Príncipe", gentilico: "Haitiano", flag: "🇭🇹" },
             "DOM": { nome: "República Dominicana", capital: "Santo Domingo", gentilico: "Dominicano", flag: "🇩🇴" },
             "SLV": { nome: "El Salvador", capital: "San Salvador", gentilico: "Salvadorenho", flag: "🇸🇻" },
-            "GTM": { nome: "Guatemala", capital: "Cidade da Guatemala", gentilico: "Guatemalteco", flag: "🇬🇹" },
+            "GTM": { nome: "Guatemala", capital: "Cidade da Guatemala", gentilico: "Guatemalteco", flag: "🇬TM" },
             "CUB": { nome: "Cuba", capital: "Havana", gentilico: "Cubano", flag: "🇨🇺" },
             "HND": { nome: "Honduras", capital: "Tegucigalpa", gentilico: "Hondurenho", flag: "🇭🇳" },
             "USA": { nome: "Estados Unidos", capital: "Washington, D.C.", gentilico: "Norte-americano", flag: "🇺🇸" },
@@ -406,24 +394,20 @@ Abaixo está o código completo atualizado e corrigido:
         let selectedContinent = 'All';
         let isMuted = false;
 
-        /* Esquema de cores por padrão regional */
         const defaultColors = {
             "Americas": "#10b981", "Europe": "#3b82f6", "Asia": "#ec4899",
             "Africa": "#f59e0b", "Oceania": "#06b6d4", "Antarctica": "#e2e8f0"
         };
         let regionColors = { ...defaultColors };
 
-        /* Estado de manipulação de peças (drag & drop) */
         let isDragging = false;
         let activePiece = null;
         let dragStartSvg = { x: 0, y: 0 };
 
-        /* Estado de transformação do visualizador do mapa (pan & zoom) */
         let mapScale = 1;
         let mapPanX = 0;
         let mapPanY = 0;
 
-        /* Alternância do modo silencioso de áudio */
         function toggleMute() {
             isMuted = !isMuted;
             const muteIcon = document.getElementById('muteIcon');
@@ -437,7 +421,6 @@ Abaixo está o código completo atualizado e corrigido:
             }
         }
 
-        /* Síntese sonora via Web Audio API */
         function playSynthesizedSound(type) {
             if (isMuted) return;
             try {
@@ -490,7 +473,6 @@ Abaixo está o código completo atualizado e corrigido:
             setupMapZoomEvents();
         };
 
-        /* Inicialização e requisição de dados vetoriais GeoJSON */
         function initGame() {
             const basePath = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
             const geojsonUrl = basePath + 'planeta.geojson';
@@ -515,7 +497,6 @@ Abaixo está o código completo atualizado e corrigido:
                 });
         }
 
-        /* Renderização da interface de erro no carregamento de dados */
         function showErrorBanner(detail = "") {
             const loader = document.getElementById('gameLoader');
             loader.innerHTML = `
@@ -530,7 +511,6 @@ Abaixo está o código completo atualizado e corrigido:
             `;
         }
 
-        /* Cálculo de Projeção Equirretangular e parser do GeoJSON para elementos SVG */
         function processGeoJSON(data) {
             let minLon = Infinity, maxLon = -Infinity, minLat = Infinity, maxLat = -Infinity;
             
@@ -573,7 +553,7 @@ Abaixo está o código completo atualizado e corrigido:
                 if (geometry.type === "Polygon") {
                     return geometry.coordinates.map(ring => "M" + ring.map(p => project(p).join(",")).join(" L") + "Z").join(" ");
                 } else if (geometry.type === "MultiPolygon") {
-                    return geometry.coordinates.map(polygon => polygon.map(ring => "M" + ring.map(p => project(p).join(",")).join(" L") + "Z").join " ").join(" ");
+                    return geometry.coordinates.map(polygon => polygon.map(ring => "M" + ring.map(p => project(p).join(",")).join(" L") + "Z").join(" ")).join(" ");
                 } else if (geometry.type === "GeometryCollection") {
                     return geometry.geometries.map(g => geometryToPath(g)).filter(p => p !== "").join(" ");
                 }
@@ -622,7 +602,7 @@ Abaixo está o código completo atualizado e corrigido:
                     regiao: continent,
                     capital: info ? info.capital : "Desconhecida",
                     gentilico: info ? info.gentilico : "Nativo",
-                    flag: (info && info.flag) ? info.flag : "🏳️",
+                    flag: (info && info.flag) ? info.flag : "🌐",
                     population: props.pop_est ? props.pop_est.toLocaleString('pt-BR') : "N/D",
                     pathD: pathData,
                     centroid: centroid,
@@ -637,7 +617,6 @@ Abaixo está o código completo atualizado e corrigido:
             renderPuzzleBoard();
         }
 
-        /* Geração das camadas SVG no tabuleiro */
         function renderPuzzleBoard() {
             const outlineGroup = document.getElementById('outlineGroup');
             const placedGroup = document.getElementById('placedGroup');
@@ -657,7 +636,7 @@ Abaixo está o código completo atualizado e corrigido:
             populateTray();
         }
 
-        /* Atualização da bandeja lateral de seleção (Card: Emoji de Bandeira; Gaveta/Lista: Nome em Português) */
+        /* Atualização das gavetas de seleção: EXCLUSIVAMENTE o nome em português (sem emojis, sem siglas) */
         function populateTray() {
             const tray = document.getElementById('piecesTray');
             tray.innerHTML = '';
@@ -678,7 +657,6 @@ Abaixo está o código completo atualizado e corrigido:
                 const card = document.createElement('div');
                 card.className = "flex items-center justify-between gap-2.5 p-2.5 bg-slate-900 border border-slate-800 hover:border-sky-500/50 hover:bg-slate-850 rounded-xl cursor-pointer transition-all shrink-0 w-full select-none";
                 card.innerHTML = `
-                    <span class="text-xl shrink-0 leading-none">${country.flag}</span>
                     <p class="text-xs font-bold text-slate-200 truncate flex-1 text-left">${country.nome}</p>
                     <i class="fa-solid fa-chevron-right text-[10px] text-slate-600 shrink-0"></i>
                 `;
@@ -689,7 +667,6 @@ Abaixo está o código completo atualizado e corrigido:
             });
         }
 
-        /* Instanciação e manipulação do elemento SVG interativo na área de jogo */
         function spawnActivePieceInCanvas(country) {
             if (country.isSolved) return;
             const activeGroup = document.getElementById('activePiecesGroup');
@@ -720,7 +697,6 @@ Abaixo está o código completo atualizado e corrigido:
             gElement.setAttribute("transform", `translate(${country.currentX}, ${country.currentY})`);
         }
 
-        /* Conversão de coordenadas da tela para a matriz de transformação local do SVG */
         function getSVGCoords(clientX, clientY) {
             const svg = document.getElementById('puzzleCanvas');
             const pt = svg.createSVGPoint();
@@ -730,7 +706,6 @@ Abaixo está o código completo atualizado e corrigido:
             return pt.matrixTransform(viewportGroup.getScreenCTM().inverse());
         }
 
-        /* Registro de manipuladores de evento de arrasto (mouse e touch) */
         function setupGroupInteractions(gElement, country) {
             const startDrag = (clientX, clientY) => {
                 if (country.isSolved) return; 
@@ -770,7 +745,6 @@ Abaixo está o código completo atualizado e corrigido:
             if (isDragging && e.touches.length > 0) moveHandler(e.touches[0].clientX, e.touches[0].clientY);
         }, { passive: false });
 
-        /* Avaliação do encaixe geométrico na finalização do arrasto */
         const endDragHandler = () => {
             if (!isDragging || !activePiece) return;
             isDragging = false;
@@ -795,7 +769,6 @@ Abaixo está o código completo atualizado e corrigido:
         window.addEventListener('mouseup', endDragHandler);
         window.addEventListener('touchend', endDragHandler);
 
-        /* Gestão dos controles de Zoom e Pan via roda do mouse e manipulação direta */
         function setupMapZoomEvents() {
             const svg = document.getElementById('puzzleCanvas');
             let isPanningMap = false;
@@ -843,7 +816,6 @@ Abaixo está o código completo atualizado e corrigido:
             viewportGroup.setAttribute('transform', `translate(${mapPanX}, ${mapPanY}) scale(${mapScale})`);
         }
 
-        /* Fixação da peça no local correto e atualização do estado resolvido */
         function snapCountryToTarget(country, element) {
             country.isSolved = true;
             country.currentX = 0; 
@@ -886,7 +858,6 @@ Abaixo está o código completo atualizado e corrigido:
             return map[continent] || continent;
         }
 
-        /* Atualização dinâmica de cores por continente */
         function updateRegionColor(regiao, newColor) {
             regionColors[regiao] = newColor;
             worldCountries.forEach(country => { if (country.regiao === regiao) country.color = newColor; });
@@ -928,7 +899,6 @@ Abaixo está o código completo atualizado e corrigido:
 
         function filterTray() { populateTray(); }
 
-        /* Sequência de encerramento e disparo do modal de vitória */
         function victoryCelebration() {
             clearInterval(timerInterval);
             playSynthesizedSound('victory');
@@ -991,5 +961,3 @@ Abaixo está o código completo atualizado e corrigido:
     </script>
 </body>
 </html>
-
-```
