@@ -506,45 +506,32 @@
 const GEOJSON_URL = './paises.geojson';
 
 function initGame() {
-    // Tenta carregar o arquivo externo do GitHub
-    fetch(GEOJSON_URL)
+    console.log("Tentando carregar ./planeta.geojson...");
+
+    fetch('./planeta.geojson')
         .then(response => {
-            if (!response.ok) throw new Error("Erro na rede ao buscar o GeoJSON");
+            if (!response.ok) {
+                throw new Error("Não foi possível carregar o arquivo planeta.geojson. Verifique se ele está na mesma pasta.");
+            }
             return response.json();
         })
         .then(data => {
+            console.log("GeoJSON local carregado com sucesso!");
             processGeoJSON(data);
-            document.getElementById('gameLoader').style.opacity = '0';
-            setTimeout(() => {
-                document.getElementById('gameLoader').style.display = 'none';
-            }, 300);
+            
+            // Oculta o loader
+            const loader = document.getElementById('gameLoader');
+            if (loader) {
+                loader.style.opacity = '0';
+                setTimeout(() => { loader.style.display = 'none'; }, 300);
+            }
             startTimer();
         })
         .catch(err => {
-            console.error("Falha ao carregar o arquivo do GitHub, tentando backup local...", err);
-            // Backup: se falhar o GitHub, tenta carregar o dado que já está no código
-            if (typeof worldGeoJSON !== 'undefined') {
-                processGeoJSON(worldGeoJSON);
-                document.getElementById('gameLoader').style.display = 'none';
-                startTimer();
-            } else {
-                showErrorBanner();
-            }
+            console.error("Erro no carregamento:", err);
+            showErrorBanner();
         });
 }
-            
-            try {
-                processGeoJSON(worldGeoJSON);
-                document.getElementById('gameLoader').style.opacity = '0';
-                setTimeout(() => {
-                    document.getElementById('gameLoader').style.display = 'none';
-                }, 500);
-                startTimer();
-            } catch (err) {
-                console.error("Erro ao carregar dados geográficos:", err);
-                showErrorBanner();
-            }
-        }
 
         function showErrorBanner() {
             const loader = document.getElementById('gameLoader');
