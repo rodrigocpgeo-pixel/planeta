@@ -78,7 +78,6 @@
                 </div>
             </div>
 
-            <!-- Card à esquerda: Exibe exclusivamente a bandeira em imagem e dados do país -->
             <div id="discoveryCard" class="bg-slate-950 border border-slate-900 p-5 rounded-2xl shadow-lg flex-1 flex flex-col justify-between min-h-[220px] transition-all">
                 <div id="discoveryEmpty" class="flex-1 flex flex-col items-center justify-center text-center py-8">
                     <div class="w-14 h-14 bg-slate-900/60 rounded-full border border-slate-800/50 flex items-center justify-center mb-4 text-slate-500 animate-pulse">
@@ -163,7 +162,6 @@
                             <button onclick="setContinentFilter('Antarctica')" id="tab-Antarctica" class="px-2 py-1 rounded bg-slate-950/40 hover:bg-slate-950 shrink-0">Antártida</button>
                         </div>
                     </div>
-                    <!-- Tray de países para selecionar (Apenas nome em Português) -->
                     <div id="piecesTray" class="flex lg:flex-col flex-row gap-2 overflow-x-auto lg:overflow-y-auto lg:overflow-x-hidden flex-1 max-h-[140px] lg:max-h-[460px] p-1 custom-scroll"></div>
                 </div>
 
@@ -209,7 +207,6 @@
     </footer>
 
     <script>
-        /* Mapeamento de metadados dos países com código ISO-2 oficial para carregamento da bandeira */
         const countryDataPT = {
             "RUS": { nome: "Rússia", capital: "Moscou", gentilico: "Russo", iso2: "ru" },
             "GBR": { nome: "Reino Unido", capital: "Londres", gentilico: "Britânico", iso2: "gb" },
@@ -388,7 +385,6 @@
             "ATF": { nome: "T. A. A. Francesas", capital: "Martin-de-Viviès", gentilico: "Francês", iso2: "tf" }
         };
 
-        /* Estado global da aplicação */
         let worldCountries = []; 
         let solvedCountries = new Set();
         let timerInterval = null;
@@ -640,9 +636,6 @@
             populateTray();
         }
 
-        /* Atualização da gaveta lateral:
-           1. Adicionado `w-[140px] lg:w-full` para não espremer no celular e garantir o nome visível.
-           2. Exibe EXCLUSIVAMENTE o nome em português (sem siglas ou emojis). */
         function populateTray() {
             const tray = document.getElementById('piecesTray');
             tray.innerHTML = '';
@@ -673,6 +666,16 @@
             });
         }
 
+        /* Cálculo dinâmico para garantir que a peça nasça no CENTRO VISÍVEL DO MAPA com Zoom/Pan ativos */
+        function getMapViewportCenter() {
+            const defaultCenterX = 500;
+            const defaultCenterY = 300;
+            return {
+                x: (defaultCenterX - mapPanX) / mapScale,
+                y: (defaultCenterY - mapPanY) / mapScale
+            };
+        }
+
         function spawnActivePieceInCanvas(country) {
             if (country.isSolved) return;
             const activeGroup = document.getElementById('activePiecesGroup');
@@ -683,16 +686,17 @@
             g.setAttribute("id", `piece-${country.code}`);
             g.setAttribute("filter", "url(#activeShadow)");
 
-            const spawnX = 180, spawnY = 400;
-            country.currentX = spawnX - country.centroid.x;
-            country.currentY = spawnY - country.centroid.y;
+            // Ajuste automático do centro da visualização atual
+            const viewCenter = getMapViewportCenter();
+            country.currentX = viewCenter.x - country.centroid.x;
+            country.currentY = viewCenter.y - country.centroid.y;
             setPieceTransform(g, country);
 
             const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
             path.setAttribute("d", country.pathD);
             path.setAttribute("fill", country.color); 
             path.setAttribute("stroke", "#ffffff");
-            path.setAttribute("stroke-width", "1.5"); 
+            path.setAttribute("stroke-width", `${1.5 / mapScale}`); 
             path.setAttribute("class", "cursor-grab transition-all active:scale-102");
             g.appendChild(path);
             activeGroup.appendChild(g);
@@ -723,7 +727,7 @@
                 dragStartSvg.y = svgPoint.y - country.currentY;
                 const path = gElement.querySelector('path');
                 if (path) {
-                    path.setAttribute("stroke-width", "2.5");
+                    path.setAttribute("stroke-width", `${2.5 / mapScale}`);
                     path.setAttribute("stroke", "#38bdf8");
                     path.setAttribute("class", "cursor-grabbing");
                 }
@@ -766,7 +770,7 @@
                 const path = element.querySelector('path');
                 if (path) {
                     path.setAttribute("class", "cursor-grab");
-                    path.setAttribute("stroke-width", "1.5");
+                    path.setAttribute("stroke-width", `${1.5 / mapScale}`);
                     path.setAttribute("stroke", "#ffffff");
                 }
             }
@@ -850,7 +854,6 @@
             if (solvedCountries.size === worldCountries.length) victoryCelebration();
         }
 
-        /* Revelação no Card da Esquerda com imagem da bandeira limpa e sem siglas */
         function revealDiscovery(country) {
             document.getElementById('discoveryEmpty').classList.add('hidden');
             const info = document.getElementById('discoveryInfo');
@@ -971,3 +974,5 @@
     </script>
 </body>
 </html>
+
+```
