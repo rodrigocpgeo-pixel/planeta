@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quebra-Cabeça do Mundo - Edição Globo Terrestre</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght=300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0b0f19; /* Deep Space/Dark Slate */
+            color: #f1f5f9;
+            overflow-x: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        /* Configuração de scrollbar customizada */
+        .custom-scroll::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background: #111827;
+            border-radius: 4px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: #374151;
+            border-radius: 4px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb:hover {
+            background: #4b5563;
+        }
+        /* Animação para limites ativos no modo fácil */
+        @keyframes outline-pulse {
+            0%, 100% { stroke-opacity: 0.3; }
+            50% { stroke-opacity: 0.8; }
+        }
+        .pulse-outline {
+            animation: outline-pulse 2s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between">
+
+    <header class="bg-slate-950 border-b border-slate-900 py-3 px-6 shadow-2xl sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto flex flex-col lg:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="bg-sky-500/10 p-2.5 rounded-xl border border-sky-500/20 text-sky-400">
+                    <i class="fa-solid fa-earth-americas text-2xl animate-spin-slow"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg md:text-xl font-black tracking-tight flex items-center gap-2">
+                        QUEBRA-CABEÇA <span class="text-sky-400 font-medium">Mundial</span>
+                    </h1>
+                    <p class="text-[11px] text-slate-400">Selecione um país na bandeja, filtre por continente e arraste-o para o mapa no local exato.</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-3 flex-wrap">
+                <div class="flex items-center bg-slate-900 p-1 rounded-xl border border-slate-800 text-xs font-semibold">
+                    <button onclick="changeDifficulty('EASY')" id="btn-easy" class="px-3 py-1.5 rounded-lg text-sky-400 bg-slate-950/80 shadow-md transition-all">
+                        <i class="fa-solid fa-layer-group"></i> Fácil (Com Limites)
+                    </button>
+                    <button onclick="changeDifficulty('HARD')" id="btn-hard" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition-all">
+                        <i class="fa-solid fa-border-none"></i> Difícil (Sem Linhas)
+                    </button>
+                </div>
+                
+                <button onclick="resetGame()" class="px-3 py-1.5 bg-slate-900 hover:bg-slate-850 border border-slate-800 rounded-xl text-xs font-bold text-slate-300 flex items-center gap-1.5 transition-all">
+                    <i class="fa-solid fa-rotate-left"></i> Reiniciar Jogo
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+        
+        <!-- Left Column: Status, Discovery, Color Customization -->
+        <section class="lg:col-span-3 flex flex-col gap-4 h-full">
+            
+            <!-- Game Progress -->
+            <div class="bg-slate-950 border border-slate-900 p-5 rounded-2xl shadow-lg flex flex-col gap-4">
+                <div class="flex justify-between items-center">
+                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Progresso Global</span>
+                    <span id="timerText" class="text-sm font-mono font-bold text-sky-400 bg-sky-950/40 px-2 py-1 rounded-lg border border-sky-900/30">
+                        <i class="fa-regular fa-clock"></i> 00:00
+                    </span>
+                </div>
+
+                <div>
+                    <div class="flex justify-between items-end mb-1">
+                        <span class="text-xs text-slate-400">Nações Encaixadas</span>
+                        <span class="text-sm font-extrabold text-sky-400"><span id="solvedCount">0</span>/<span id="totalCount">0</span> <span class="text-xs font-normal text-slate-500">Países</span></span>
+                    </div>
+                    <div class="w-full bg-slate-900 h-2.5 rounded-full overflow-hidden border border-slate-800/50">
+                        <div id="gameProgressBar" class="bg-gradient-to-r from-sky-500 to-indigo-500 h-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Country Explorer / Discovery Panel (Sem Curiosidades) -->
+            <div id="discoveryCard" class="bg-slate-950 border border-slate-900 p-5 rounded-2xl shadow-lg flex-1 flex flex-col justify-between min-h-[220px] transition-all">
+                <div id="discoveryEmpty" class="flex-1 flex flex-col items-center justify-center text-center py-8">
+                    <div class="w-14 h-14 bg-slate-900/60 rounded-full border border-slate-800/50 flex items-center justify-center mb-4 text-slate-500 animate-pulse">
+                        <i class="fa-solid fa-globe text-xl"></i>
+                    </div>
+                    <h3 class="text-xs font-bold text-slate-300">Explorador de Nações</h3>
+                    <p class="text-[11px] text-slate-500 max-w-[200px] mt-1">Encaixe um país no mapa para revelar o seu nome aqui.</p>
+                </div>
+
+                <div id="discoveryInfo" class="hidden flex-1 flex flex-col gap-4 items-center justify-center text-center py-6">
+                    <span id="discFlag" class="text-5xl p-3 bg-slate-900 rounded-2xl border border-slate-800/50 shadow-inner">🇺🇳</span>
+                    <div>
+                        <h3 id="discName" class="text-xl font-black text-white leading-tight">Nome do País</h3>
+                        <p class="text-[10px] font-bold text-sky-400 uppercase tracking-widest mt-2"><i class="fa-solid fa-map-location-dot"></i> <span id="discRegion">Continente</span></p>
+                    </div>
+                    <span class="text-[9px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider mt-2"><i class="fa-solid fa-circle-check"></i> Encaixado</span>
+                </div>
+            </div>
+
+            <!-- Color Palette Customizer -->
+            <div class="bg-slate-950 border border-slate-900 p-4 rounded-2xl shadow-lg">
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2.5 block flex items-center justify-between">
+                    <span>Cores dos Continentes</span>
+                    <span class="text-[9px] text-slate-500 font-normal">Personalizar</span>
+                </span>
+                
+                <div class="grid grid-cols-2 gap-2 text-[11px] font-semibold text-slate-300">
+                    <div class="flex items-center gap-1.5 bg-slate-900/40 p-1.5 rounded-xl border border-slate-900/50 hover:bg-slate-900/70 transition-all">
+                        <input type="color" id="picker-Americas" value="#10b981" onchange="updateRegionColor('Americas', this.value)" class="w-5 h-5 rounded cursor-pointer border border-slate-800 bg-transparent [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:border-0 [&::-webkit-color-swatch]:rounded">
+                        <span class="truncate text-[10px]">Américas</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 bg-slate-900/40 p-1.5 rounded-xl border border-slate-900/50 hover:bg-slate-900/70 transition-all">
+                        <input type="color" id="picker-Europe" value="#3b82f6" onchange="updateRegionColor('Europe', this.value)" class="w-5 h-5 rounded cursor-pointer border border-slate-800 bg-transparent [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:border-0 [&::-webkit-color-swatch]:rounded">
+                        <span class="truncate text-[10px]">Europa</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 bg-slate-900/40 p-1.5 rounded-xl border border-slate-900/50 hover:bg-slate-900/70 transition-all">
+                        <input type="color" id="picker-Asia" value="#ec4899" onchange="updateRegionColor('Asia', this.value)" class="w-5 h-5 rounded cursor-pointer border border-slate-800 bg-transparent [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:border-0 [&::-webkit-color-swatch]:rounded">
+                        <span class="truncate text-[10px]">Ásia</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 bg-slate-900/40 p-1.5 rounded-xl border border-slate-900/50 hover:bg-slate-900/70 transition-all">
+                        <input type="color" id="picker-Africa" value="#f59e0b" onchange="updateRegionColor('Africa', this.value)" class="w-5 h-5 rounded cursor-pointer border border-slate-800 bg-transparent [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:border-0 [&::-webkit-color-swatch]:rounded">
+                        <span class="truncate text-[10px]">África</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 bg-slate-900/40 p-1.5 rounded-xl border border-slate-900/50 hover:bg-slate-900/70 transition-all">
+                        <input type="color" id="picker-Oceania" value="#06b6d4" onchange="updateRegionColor('Oceania', this.value)" class="w-5 h-5 rounded cursor-pointer border border-slate-800 bg-transparent [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:border-0 [&::-webkit-color-swatch]:rounded">
+                        <span class="truncate text-[10px]">Oceania</span>
+                    </div>
+                    
+                    <button onclick="restoreDefaultColors()" title="Restaurar cores originais" class="flex items-center justify-center gap-1.5 bg-slate-900/60 hover:bg-slate-850 p-1.5 rounded-xl border border-slate-900 hover:border-slate-800 transition-all text-[9px] font-bold text-slate-400 hover:text-white uppercase">
+                        <i class="fa-solid fa-arrow-rotate-left text-sky-400"></i> Padrão
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Right Column: Interactive Map Workspace and Pieces Tray -->
+        <section class="lg:col-span-9 flex flex-col gap-4 relative">
+            
+            <!-- Game Loader / Splash Screen -->
+            <div id="gameLoader" class="absolute inset-0 bg-slate-950/95 z-50 rounded-2xl flex flex-col items-center justify-center gap-4 transition-opacity duration-500">
+                <div class="relative flex items-center justify-center">
+                    <div class="w-16 h-16 border-4 border-sky-950 border-t-sky-400 rounded-full animate-spin"></div>
+                    <i class="fa-solid fa-earth-americas absolute text-sky-400 text-xl animate-pulse"></i>
+                </div>
+                <div class="text-center">
+                    <p class="text-xs font-semibold text-slate-300 uppercase tracking-widest animate-pulse">Carregando Cartografia Mundial...</p>
+                    <p class="text-[10px] text-slate-500 mt-1">Projetando vetores geográficos continentais</p>
+                </div>
+            </div>
+
+            <!-- Global Map & Tray Grid -->
+            <div class="bg-slate-950 border border-slate-900 rounded-2xl p-4 flex-1 flex flex-col lg:flex-row gap-4 min-h-[500px]">
+                
+                <!-- Tray Column (Left side of Map) -->
+                <div class="w-full lg:w-[260px] bg-slate-900 border border-slate-800/50 rounded-xl p-3 flex flex-col gap-3 shrink-0">
+                    <div class="border-b border-slate-800 pb-2 flex flex-col gap-2">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block text-center lg:text-left"><i class="fa-solid fa-cubes text-sky-400"></i> Países Disponíveis</span>
+                        
+                        <!-- Search Box -->
+                        <div class="relative">
+                            <input type="text" id="countrySearch" oninput="filterTray()" placeholder="Buscar país..." class="w-full bg-slate-950 border border-slate-800 text-xs px-3 py-1.5 pl-8 rounded-lg text-slate-300 placeholder-slate-600 focus:outline-none focus:border-sky-500 transition-all">
+                            <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-600 text-[10px]"></i>
+                        </div>
+
+                        <!-- Continent Filters/Tabs -->
+                        <div class="flex gap-1 overflow-x-auto pb-1 max-w-full custom-scroll text-[10px] font-bold text-slate-400">
+                            <button onclick="setContinentFilter('All')" id="tab-All" class="px-2 py-1 rounded bg-slate-950 border border-sky-500/20 text-sky-400 shrink-0">Todos</button>
+                            <button onclick="setContinentFilter('Americas')" id="tab-Americas" class="px-2 py-1 rounded bg-slate-950/40 hover:bg-slate-950 shrink-0">Américas</button>
+                            <button onclick="setContinentFilter('Europe')" id="tab-Europe" class="px-2 py-1 rounded bg-slate-950/40 hover:bg-slate-950 shrink-0">Europa</button>
+                            <button onclick="setContinentFilter('Asia')" id="tab-Asia" class="px-2 py-1 rounded bg-slate-950/40 hover:bg-slate-950 shrink-0">Ásia</button>
+                            <button onclick="setContinentFilter('Africa')" id="tab-Africa" class="px-2 py-1 rounded bg-slate-950/40 hover:bg-slate-950 shrink-0">África</button>
+                            <button onclick="setContinentFilter('Oceania')" id="tab-Oceania" class="px-2 py-1 rounded bg-slate-950/40 hover:bg-slate-950 shrink-0">Oceania</button>
+                            <button onclick="setContinentFilter('Antarctica')" id="tab-Antarctica" class="px-2 py-1 rounded bg-slate-950/40 hover:bg-slate-950 shrink-0">Antártida</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Scrollable Tray Items -->
+                    <div id="piecesTray" class="flex lg:flex-col flex-row gap-2 overflow-x-auto lg:overflow-y-auto lg:overflow-x-hidden flex-1 max-h-[140px] lg:max-h-[460px] p-1 custom-scroll">
+                        <!-- Loaded dynamically -->
+                    </div>
+                </div>
+
+                <!-- SVG Interactive Map Canvas -->
+                <div class="flex-1 bg-slate-900/20 rounded-xl border border-slate-900 relative overflow-hidden flex items-center justify-center">
+                    <!-- Subtle compass rose/ocean decoration -->
+                    <div class="absolute bottom-4 left-4 opacity-5 pointer-events-none select-none">
+                        <i class="fa-solid fa-compass text-9xl"></i>
+                    </div>
+
+                    <svg id="puzzleCanvas" viewBox="0 0 1000 600" class="w-full h-full max-h-[580px] select-none">
+                        <rect width="1000" height="600" fill="transparent" />
+
+                        <!-- Shadow Definitions -->
+                        <defs>
+                            <filter id="shadow" x="-15%" y="-15%" width="130%" height="130%">
+                                <feDropShadow dx="1" dy="2" stdDeviation="1.5" flood-color="#000" flood-opacity="0.6" />
+                            </filter>
+                            <filter id="activeShadow" x="-30%" y="-30%" width="160%" height="160%">
+                                <feDropShadow dx="3" dy="6" stdDeviation="5" flood-color="#000" flood-opacity="0.8" />
+                            </filter>
+                            <filter id="outerOutline" x="-20%" y="-20%" width="140%" height="140%">
+                                <feMorphology in="SourceAlpha" result="expanded" operator="dilate" radius="2" />
+                                <feFlood flood-color="#38bdf8" flood-opacity="0.6" result="coloredOutline" />
+                                <feComposite in="coloredOutline" in2="expanded" operator="in" result="outline" />
+                                <feMerge>
+                                    <feMergeNode in="outline" />
+                                    <feMergeNode in="SourceGraphic" />
+                                </feMerge>
+                            </feMerge>
+                            </filter>
+                        </defs>
+
+                        <!-- Base Map Outlines (Target slots) -->
+                        <g id="outlineGroup" class="transition-all duration-300"></g>
+
+                        <!-- Correctly placed countries -->
+                        <g id="placedGroup"></g>
+
+                        <!-- Currently dragged piece -->
+                        <g id="activePiecesGroup"></g>
+                    </svg>
+                </div>
+
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer Information -->
+    <footer class="bg-slate-950 border-t border-slate-900/60 py-3.5 px-6 text-center text-[10px] text-slate-500">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
+            <p>Quebra-Cabeça Cartográfico Global © 2026. Plataforma REA-RP.</p>
+            <p class="flex items-center gap-1.5"><i class="fa-solid fa-graduation-cap text-sky-500"></i> Baseado no Atlas de Nações do Natural Earth</p>
+        </div>
+    </footer>
+
+    <script>
+        // Custom PT Translation dataset (Sem campo de curiosidades)
+        const countryDataPT = {
+            "CRI": { nome: "Costa Rica", capital: "São José", gentilico: "Costarriquenho", flag: "🇨🇷" },
+            "NIC": { nome: "Nicarágua", capital: "Manágua", gentilico: "Nicaraguense", flag: "🇳🇮" },
+            "HTI": { nome: "Haiti", capital: "Porto Príncipe", gentilico: "Haitiano", flag: "🇭🇹" },
+            "DOM": { nome: "República Dominicana", capital: "Santo Domingo", gentilico: "Dominicano", flag: "🇩🇴" },
+            "SLV": { nome: "El Salvador", capital: "San Salvador", gentilico: "Salvadorenho", flag: "🇸🇻" },
+            "GTM": { nome: "Guatemala", capital: "Cidade da Guatemala", gentilico: "Guatemalteco", flag: "🇬🇹" },
+            "CUB": { nome: "Cuba", capital: "Havana", gentilico: "Cubano", flag: "🇨🇺" },
+            "HND": { nome: "Honduras", capital: "Tegucigalpa", gentilico: "Hondurenho", flag: "🇭🇳" },
+            "USA": { nome: "Estados Unidos", capital: "Washington, D.C.", gentilico: "Norte-americano", flag: "🇺🇸" },
+            "CAN": { nome: "Canadá", capital: "Ottawa", gentilico: "Canadense", flag: "🇨🇦" },
+            "MEX": { nome: "México", capital: "Cidade do México", gentilico: "Mexicano", flag: "🇲🇽" },
+            "BLZ": { nome: "Belize", capital: "Belmopan", gentilico: "Belizense", flag: "🇧🇿" },
+            "PAN": { nome: "Panamá", capital: "Cidade do Panamá", gentilico: "Panamenho", flag: "🇵🇦" },
+            "GRL": { nome: "Groenlândia", capital: "Nuuk", gentilico: "Groenlandês", flag: "🇬🇱" },
+            "BHS": { nome: "Bahamas", capital: "Nassau", gentilico: "Bahamense", flag: "🇧🇸" },
+            "TTO": { nome: "Trinidad e Tobago", capital: "Port of Spain", gentilico: "Trinitário", flag: "🇹🇹" },
+            "PRI": { nome: "Porto Rico", capital: "San Juan", gentilico: "Portorriquenho", flag: "🇵🇷" },
+            "JAM": { nome: "Jamaica", capital: "Kingston", gentilico: "Jamaicano", flag: "🇯🇲" },
+            "IDN": { nome: "Indonésia", capital: "Jacarta", gentilico: "Indonésio", flag: "🇮🇩" },
+            "MYS": { nome: "Malásia", capital: "Kuala Lumpur", gentilico: "Malásio", flag: "🇲🇾" },
+            "CYP": { nome: "Chipre", capital: "Nicósia", gentilico: "Chipriota", flag: "🇨🇾" },
+            "IND": { nome: "Índia", capital: "Nova Deli", gentilico: "Indiano", flag: "🇮🇳" },
+            "CHN": { nome: "China", capital: "Pequim", gentilico: "Chinês", flag: "🇨🇳" },
+            "ISR": { nome: "Israel", capital: "Jerusalém", gentilico: "Israelense", flag: "🇮🇱" },
+            "PSX": { nome: "Palestina", capital: "Jerusalém Oriental", gentilico: "Palestino", flag: "🇵🇸" },
+            "LBN": { nome: "Líbano", capital: "Beirute", gentilico: "Libanês", flag: "🇱🇧" },
+            "SYR": { nome: "Síria", capital: "Damasco", gentilico: "Sírio", flag: "🇸🇾" },
+            "KOR": { nome: "Coreia do Sul", capital: "Seul", gentilico: "Sul-coreano", flag: "🇰🇷" },
+            "PRK": { nome: "Coreia do Norte", capital: "Pyongyang", gentilico: "Norte-coreano", flag: "🇰🇵" },
+            "BTN": { nome: "Butão", capital: "Thimphu", gentilico: "Butanês", flag: "🇧🇹" },
+            "OMN": { nome: "Omã", capital: "Mascate", gentilico: "Omanense", flag: "🇴🇲" },
+            "UZB": { nome: "Uzbequistão", capital: "Tashkent", gentilico: "Uzbeque", flag: "🇺🇿" },
+            "KAZ": { nome: "Cazaquistão", capital: "Astana", gentilico: "Cazaque", flag: "🇰🇿" },
+            "TJK": { nome: "Tajiquistão", capital: "Dushanbe", gentilico: "Tajique", flag: "🇹🇯" },
+            "MNG": { nome: "Mongólia", capital: "Ulaanbaatar", gentilico: "Mongol", flag: "🇲🇳" },
+            "VNM": { nome: "Vietnã", capital: "Hanói", gentilico: "Vietnamita", flag: "🇻🇳" },
+            "KHM": { nome: "Camboja", capital: "Phnom Penh", gentilico: "Cambojano", flag: "🇰🇭" },
+            "ARE": { nome: "Emirados Árabes", capital: "Abu Dhabi", gentilico: "Emiratense", flag: "🇦🇪" },
+            "GEO": { nome: "Geórgia", capital: "Tbilisi", gentilico: "Georgiano", flag: "🇬🇪" },
+            "AZE": { nome: "Azerbaijão", capital: "Baku", gentilico: "Azeri", flag: "🇦🇿" },
+            "TUR": { nome: "Turquia", capital: "Ancara", gentilico: "Turco", flag: "🇹🇷" },
+            "LAO": { nome: "Laos", capital: "Vientiane", gentilico: "Laosiano", flag: "🇱🇦" },
+            "KGZ": { nome: "Quirguistão", capital: "Bishkek", gentilico: "Quirguiz", flag: "🇰🇬" },
+            "ARM": { nome: "Armênia", capital: "Yerevan", gentilico: "Armênio", flag: "🇦🇲" },
+            "IRQ": { nome: "Iraque", capital: "Bagdá", gentilico: "Iraquiano", flag: "🇮🇶" },
+            "IRN": { nome: "Irã", capital: "Teerã", gentilico: "Iraniano", flag: "🇮🇷" },
+            "QAT": { nome: "Catar", capital: "Doha", gentilico: "Catariano", flag: "🇶🇦" },
+            "SAU": { nome: "Arábia Saudita", capital: "Riade", gentilico: "Saudita", flag: "🇸🇦" },
+            "PAK": { nome: "Paquistão", capital: "Islamabad", gentilico: "Paquistanês", flag: "🇵🇰" },
+            "THA": { nome: "Tailândia", capital: "Bangkok", gentilico: "Tailandês", flag: "🇹🇭" },
+            "KWT": { nome: "Kuwait", capital: "Cidade do Kuwait", gentilico: "Kuwaitiano", flag: "🇰🇼" },
+            "TLS": { nome: "Timor-Leste", capital: "Dili", gentilico: "Timorense", flag: "🇹🇱" },
+            "BRN": { nome: "Brunei", capital: "Bandar Seri Begawan", gentilico: "Bruneano", flag: "🇧🇳" },
+            "MMR": { nome: "Mianmar", capital: "Naypyidaw", gentilico: "Mianmarense", flag: "🇲🇲" },
+            "BGD": { nome: "Bangladesh", capital: "Daca", gentilico: "Bengali", flag: "🇧🇩" },
+            "AFG": { nome: "Afeganistão", capital: "Cabul", gentilico: "Afegão", flag: "🇦🇫" },
+            "TKM": { nome: "Turcomenistão", capital: "Ashgabat", gentilico: "Turcomeno", flag: "🇹🇲" },
+            "JOR": { nome: "Jordânia", capital: "Amã", gentilico: "Jordaniano", flag: "🇯🇴" },
+            "NPL": { nome: "Nepal", capital: "Katmandu", gentilico: "Nepalês", flag: "🇳🇵" },
+            "YEM": { nome: "Iêmen", capital: "Sana", gentilico: "Iemenita", flag: "🇾🇪" },
+            "PHL": { nome: "Filipinas", capital: "Manila", gentilico: "Filipino", flag: "🇵🇭" },
+            "LKA": { nome: "Sri Lanka", capital: "Sri Jayawardenepura", gentilico: "Cingalês", flag: "🇱🇰" },
+            "TWN": { nome: "Taiwan", capital: "Taipé", gentilico: "Taiwanês", flag: "🇹🇼" },
+            "CHL": { nome: "Chile", capital: "Santiago", gentilico: "Chileno", flag: "🇨🇱" },
+            "BOL": { nome: "Bolívia", capital: "Sucre", gentilico: "Boliviano", flag: "🇧🇴" },
+            "PER": { nome: "Peru", capital: "Lima", gentilico: "Peruano", flag: "🇵🇪" },
+            "SUR": { nome: "Suriname", capital: "Paramaribo", gentilico: "Surinamês", flag: "🇸🇷" },
+            "GUY": { nome: "Guiana", capital: "Georgetown", gentilico: "Guianense", flag: "🇬🇾" },
+            "BRA": { nome: "Brasil", capital: "Brasília", gentilico: "Brasileiro", flag: "🇧🇷" },
+            "URY": { nome: "Uruguai", capital: "Montevidéu", gentilico: "Uruguaio", flag: "🇺🇾" },
+            "ECU": { nome: "Equador", capital: "Quito", gentilico: "Equatoriano", flag: "🇪🇨" },
+            "COL": { nome: "Colômbia", capital: "Bogotá", gentilico: "Colombiano", flag: "🇨🇴" },
+            "PRY": { nome: "Paraguai", capital: "Assunção", gentilico: "Paraguaio", flag: "🇵🇾" },
+            "VEN": { nome: "Venezuela", capital: "Caracas", gentilico: "Venezuelano", flag: "🇻🇪" },
+            "FLK": { nome: "Ilhas Malvinas", capital: "Stanley", gentilico: "Falklandês", flag: "🇫🇰" },
+            "ETH": { nome: "Etiópia", capital: "Adis Abeba", gentilico: "Etíope", flag: "🇪🇹" },
+            "SDS": { nome: "Sudão do Sul", capital: "Juba", gentilico: "Sul-sudanês", flag: "🇸🇸" },
+            "SOM": { nome: "Somália", capital: "Mogadíscio", gentilico: "Somali", flag: "🇸🇴" },
+            "KEN": { nome: "Quênia", capital: "Nairóbi", gentilico: "Queniano", flag: "🇰🇪" },
+            "MWI": { nome: "Malawi", capital: "Lilongwe", gentilico: "Malauiano", flag: "🇲🇼" },
+            "TZA": { nome: "Tanzânia", capital: "Dodoma", gentilico: "Tanzaniano", flag: "🇹🇿" },
+            "SOL": { nome: "Somalilândia", capital: "Hargeisa", gentilico: "Somalilandês", flag: "🇸🇴" },
+            "MAR": { nome: "Marrocos", capital: "Rabat", gentilico: "Marroquino", flag: "🇲🇦" },
+            "SAH": { nome: "Saara Ocidental", capital: "Laayoune", gentilico: "Saariano", flag: "🇪🇭" },
+            "COG": { nome: "República do Congo", capital: "Brazzaville", gentilico: "Congolês", flag: "🇨🇬" },
+            "COD": { nome: "R. D. do Congo", capital: "Kinshasa", gentilico: "Congolês", flag: "🇨🇩" },
+            "NAM": { nome: "Namíbia", capital: "Windhoek", gentilico: "Namibiano", flag: "🇳🇦" },
+            "ZAF": { nome: "África do Sul", capital: "Pretória", gentilico: "Sul-africano", flag: "🇿🇦" },
+            "LBY": { nome: "Líbia", capital: "Trípoli", gentilico: "Líbio", flag: "🇱🇾" },
+            "TUN": { nome: "Tunísia", capital: "Túnis", gentilico: "Tunisiano", flag: "🇹🇳" },
+            "ZMB": { nome: "Zâmbia", capital: "Lusaka", gentilico: "Zambiano", flag: "🇿🇲" },
+            "SLE": { nome: "Serra Leoa", capital: "Freetown", gentilico: "Serra-leonês", flag: "🇸🇱" },
+            "GIN": { nome: "Guiné", capital: "Conacri", gentilico: "Guineano", flag: "🇬🇳" },
+            "LBR": { nome: "Libéria", capital: "Monróvia", gentilico: "Liberiano", flag: "🇱🇷" },
+            "CAF": { nome: "Rep. Centro-Africana", capital: "Bangui", gentilico: "Centro-africano", flag: "🇨🇫" },
+            "SDN": { nome: "Sudão", capital: "Cartum", gentilico: "Sudanês", flag: "🇸🇩" },
+            "DJI": { nome: "Djibouti", capital: "Djibouti", gentilico: "Djibutiano", flag: "🇩🇯" },
+            "ERI": { nome: "Eritreia", capital: "Asmara", gentilico: "Eritreu", flag: "🇪🇷" },
+            "CIV": { nome: "Costa do Marfim", capital: "Yamoussoukro", gentilico: "Marfinense", flag: "🇨🇮" },
+            "MLI": { nome: "Mali", capital: "Bamako", gentilico: "Maliano", flag: "🇲🇱" },
+            "SEN": { nome: "Senegal", capital: "Dakar", gentilico: "Senegalês", flag: "🇸🇳" },
+            "NGA": { nome: "Nigéria", capital: "Abuja", gentilico: "Nigeriano", flag: "🇳🇬" },
+            "BEN": { nome: "Benim", capital: "Porto Novo", gentilico: "Beninense", flag: "🇧🇯" },
+            "AGO": { nome: "Angola", capital: "Luanda", gentilico: "Angolano", flag: "🇦🇴" },
+            "BWA": { nome: "Botsuana", capital: "Gaborone", gentilico: "Botsuano", flag: "🇧🇼" },
+            "ZWE": { nome: "Zimbábue", capital: "Harare", gentilico: "Zimbabuano", flag: "🇿🇼" },
+            "TCD": { nome: "Chade", capital: "N'Djamena", gentilico: "Chadiano", flag: "🇹🇩" },
+            "DZA": { nome: "Argélia", capital: "Argel", gentilico: "Argelino", flag: "🇩🇿" },
+            "MOZ": { nome: "Moçambique", capital: "Maputo", gentilico: "Moçambicano", flag: "🇲🇿" },
+            "SWZ": { nome: "Eswatini", capital: "Mbabane", gentilico: "Suazi", flag: "🇸🇿" },
+            "BDI": { nome: "Burundi", capital: "Gitega", gentilico: "Burundiano", flag: "🇧🇮" },
+            "RWA": { nome: "Ruanda", capital: "Kigali", gentilico: "Ruandês", flag: "🇷🇼" },
+            "UGA": { nome: "Uganda", capital: "Campala", gentilico: "Ugandense", flag: "🇺🇬" },
+            "LSO": { nome: "Lesoto", capital: "Maseru", gentilico: "Lesotiano", flag: "🇱🇸" },
+            "CMR": { nome: "Camarões", capital: "Yaoundé", gentilico: "Camaronês", flag: "🇨🇲" },
+            "GAB": { nome: "Gabão", capital: "Libreville", gentilico: "Gabonês", flag: "🇬🇦" },
+            "NER": { nome: "Níger", capital: "Niamey", gentilico: "Nigerino", flag: "🇳🇪" },
+            "BFA": { nome: "Burkina Faso", capital: "Ouagadougou", gentilico: "Burquinense", flag: "🇧🇫" },
+            "TGO": { nome: "Togo", capital: "Lomé", gentilico: "Togolês", flag: "🇹🇬" },
+            "GHA": { nome: "Gana", capital: "Acra", gentilico: "Ganes", flag: "🇬🇭" },
+            "GNB": { nome: "Guiné-Bissau", capital: "Bissau", gentilico: "Guineense", flag: "🇬🇼" },
+            "EGY": { nome: "Egito", capital: "Cairo", gentilico: "Egípcio", flag: "🇪🇬" },
+            "MRT": { nome: "Mauritânia", capital: "Nouakchott", gentilico: "Mauritano", flag: "🇲🇷" },
+            "GNQ": { nome: "Guiné Equatorial", capital: "Malabo", gentilico: "Equato-guineense", flag: "🇬🇶" },
+            "GMB": { nome: "Gâmbia", capital: "Banjul", gentilico: "Gambiano", flag: "🇬🇲" },
+            "MDG": { nome: "Madagascar", capital: "Antananarivo", gentilico: "Malgaxe", flag: "🇲🇬" },
+            "FRA": { nome: "França", capital: "Paris", gentilico: "Francês", flag: "🇫🇷" },
+            "UKR": { nome: "Ucrânia", capital: "Kiev", gentilico: "Ucraniano", flag: "🇺🇦" },
+            "BLR": { nome: "Bielorrússia", capital: "Minsk", gentilico: "Bielorrusso", flag: "🇧🇾" },
+            "LTU": { nome: "Lituânia", capital: "Vilnius", gentilico: "Lituano", flag: "🇱🇹" },
+            "LVA": { nome: "Letônia", capital: "Riga", gentilico: "Letão", flag: "🇱🇻" },
+            "NOR": { nome: "Noruega", capital: "Oslo", gentilico: "Norueguês", flag: "🇳🇴" },
+            "SWE": { nome: "Suécia", capital: "Estocolmo", gentilico: "Sueco", flag: "🇸🇪" },
+            "FIN": { nome: "Finlândia", capital: "Helsinque", gentilico: "Finlandês", flag: "🇫🇮" },
+            "LUX": { nome: "Luxemburgo", capital: "Luxemburgo", gentilico: "Luxemburguês", flag: "🇱🇺" },
+            "BEL": { nome: "Bélgica", capital: "Bruxelas", gentilico: "Belga", flag: "🇧🇪" },
+            "MKD": { nome: "Macedônia do Norte", capital: "Skopje", gentilico: "Macedônio", flag: "🇲🇰" },
+            "ALB": { nome: "Albânia", capital: "Tirana", gentilico: "Albanês", flag: "🇦🇱" },
+            "KOS": { nome: "Kosovo", capital: "Pristina", gentilico: "Kosovaro", flag: "🇽🇰" },
+            "ESP": { nome: "Espanha", capital: "Madri", gentilico: "Espanhol", flag: "🇪🇸" },
+            "DNK": { nome: "Dinamarca", capital: "Copenhague", gentilico: "Dinamarquês", flag: "🇩🇰" },
+            "ROU": { nome: "Romênia", capital: "Bucareste", gentilico: "Romeno", flag: "🇷🇴" },
+            "HUN": { nome: "Hungria", capital: "Budapeste", gentilico: "Húngaro", flag: "🇭🇺" },
+            "SVK": { nome: "Eslováquia", capital: "Bratislava", gentilico: "Eslovaco", flag: "🇸🇰" },
+            "MDA": { nome: "Moldávia", capital: "Chisinau", gentilico: "Moldavo", flag: "🇲🇩" },
+            "ISL": { nome: "Islândia", capital: "Reykjavík", gentilico: "Islandês", flag: "🇮🇸" },
+            "PNG": { nome: "Papua-Nova Guiné", capital: "Port Moresby", gentilico: "Papua", flag: "🇵🇬" },
+            "AUS": { nome: "Austrália", capital: "Camberra", gentilico: "Australiano", flag: "🇦🇺" },
+            "FJI": { nome: "Fiji", capital: "Suva", gentilico: "Fijiano", flag: "🇫🇯" },
+            "NZL": { nome: "Nova Zelândia", capital: "Wellington", gentilico: "Neozelandês", flag: "🇳🇿" },
+            "NCL": { nome: "Nova Caledônia", capital: "Nouméa", gentilico: "Neocaledônio", flag: "🇳🇨" },
+            "SLB": { nome: "Ilhas Salomão", capital: "Honiara", gentilico: "Salomônico", flag: "🇸🇧" },
+            "VUT": { nome: "Vanuatu", capital: "Port Vila", gentilico: "Vanuatuense", flag: "🇻🇺" },
+            "ATA": { nome: "Antártida", capital: "Nenhuma", gentilico: "Antártico", flag: "❄️" },
+            "ATF": { nome: "T. A. A. Francesas", capital: "Martin-de-Viviès", gentilico: "Francês", flag: "🇹🇫" }
+        };
+    </script>
+    
+    <script src="https://rawcdn.githack.com/rodrigo-pacheco/data/d2836262b9f6ee48cfb8a07c0800366eb4b7e80d/world-geojson-puzzle.js"></script>
+    
+    <script>
+        // Global Game variables
+        let gameDifficulty = 'EASY'; // EASY or HARD
+        let worldCountries = []; 
+        let solvedCountries = new Set();
+        let timerInterval = null;
+        let timeElapsed = 0; 
+        let selectedContinent = 'All'; // Filter by continent
+
+        // Palette presets by continent/region
+        const defaultColors = {
+            "Americas": "#10b981",       // Emerald
+            "Europe": "#3b82f6",         // Blue
+            "Asia": "#ec4899",           // Pink
+            "Africa": "#f59e0b",         // Amber
+            "Oceania": "#06b6d4",        // Cyan
+            "Antarctica": "#e2e8f0"      // Slate/Ice
+        };
+
+        let regionColors = { ...defaultColors };
+        
+        // Drag-and-drop state variables
+        let isDragging = false;
+        let activePiece = null;
+        let dragStartSvg = { x: 0, y: 0 };
+
+        // Sound Synthesis Engine via Web Audio API
+        function playSynthesizedSound(type) {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                
+                osc.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                
+                const now = audioCtx.currentTime;
+                
+                if (type === 'grab') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(150, now);
+                    osc.frequency.exponentialRampToValueAtTime(200, now + 0.1);
+                    gainNode.gain.setValueAtTime(0.08, now);
+                    gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+                    osc.start(now);
+                    osc.stop(now + 0.1);
+                } else if (type === 'snap') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(300, now);
+                    osc.frequency.setValueAtTime(500, now + 0.08);
+                    osc.frequency.setValueAtTime(700, now + 0.15);
+                    gainNode.gain.setValueAtTime(0.12, now);
+                    gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+                    osc.start(now);
+                    osc.stop(now + 0.3);
+                } else if (type === 'victory') {
+                    const freqs = [261.63, 329.63, 392.00, 523.25, 659.25, 783.99, 1046.50];
+                    freqs.forEach((f, idx) => {
+                        const o = audioCtx.createOscillator();
+                        const g = audioCtx.createGain();
+                        o.connect(g);
+                        g.connect(audioCtx.destination);
+                        o.type = 'sine';
+                        o.frequency.setValueAtTime(f, now + idx * 0.06);
+                        g.gain.setValueAtTime(0.1, now + idx * 0.06);
+                        g.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.06 + 0.5);
+                        o.start(now + idx * 0.06);
+                        o.stop(now + idx * 0.06 + 0.5);
+                    });
+                }
+            } catch (err) {
+                console.warn("Áudio desativado no navegador.", err);
+            }
+        }
+
+        window.onload = function() {
+            initGame();
+        };
+
+        function initGame() {
+            // Check if external worldGeoJSON database loaded correctly
+            if (typeof worldGeoJSON === 'undefined') {
+                showErrorBanner();
+                return;
+            }
+            
+            try {
+                processGeoJSON(worldGeoJSON);
+                document.getElementById('gameLoader').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('gameLoader').style.display = 'none';
+                }, 500);
+                startTimer();
+            } catch (err) {
+                console.error("Erro ao carregar dados geográficos:", err);
+                showErrorBanner();
+            }
+        }
+
+        function showErrorBanner() {
+            const loader = document.getElementById('gameLoader');
+            loader.innerHTML = `
+                <div class="text-center p-6 max-w-sm bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl">
+                    <i class="fa-solid fa-triangle-exclamation text-4xl text-amber-500 mb-3 animate-pulse"></i>
+                    <h3 class="text-sm font-bold text-slate-200 mb-1">Erro de Carregamento Cartográfico</h3>
+                    <p class="text-xs text-slate-500 mb-4">Incapaz de carregar a projeção de coordenadas das nações. Por favor, recarregue a página.</p>
+                    <button onclick="location.reload()" class="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-bold shadow-md transition-all">Recarregar</button>
+                </div>
+            `;
+        }
+
+        function processGeoJSON(data) {
+            // Find global bounding box to frame the world beautifully
+            // Clip Antarctica extreme south to avoid vertically squishing other continents
+            let minLon = Infinity, maxLon = -Infinity, minLat = Infinity, maxLat = -Infinity;
+            
+            data.features.forEach(feature => {
+                const geom = feature.geometry;
+                const parseCoords = (coords) => {
+                    coords.forEach(p => {
+                        if (Array.isArray(p[0])) {
+                            parseCoords(p);
+                        } else {
+                            const lon = p[0];
+                            const lat = p[1];
+                            
+                            // Skip Antarctica extreme south for scaling calculation to get a gorgeous map view
+                            if (feature.properties.sov_a3 === "ATA" || feature.properties.iso_a3 === "ATA") {
+                                return;
+                            }
+                            
+                            if (lon < minLon) minLon = lon;
+                            if (lon > maxLon) maxLon = lon;
+                            if (lat < minLat) minLat = lat;
+                            if (lat > maxLat) maxLat = lat;
+                        }
+                    });
+                };
+                parseCoords(geom.coordinates);
+            });
+
+            // Fallbacks in case calculation fails
+            if (minLon === Infinity) {
+                minLon = -180; maxLon = 180; minLat = -60; maxLat = 85;
+            }
+
+            // Map projection bounding boundaries on SVG canvas (1000 x 600)
+            const targetMinX = 40; 
+            const targetMaxX = 960;
+            const targetMinY = 30;
+            const targetMaxY = 560;
+
+            const scaleX = (targetMaxX - targetMinX) / (maxLon - minLon);
+            const scaleY = (targetMaxY - targetMinY) / (maxLat - minLat);
+            const scale = Math.min(scaleX, scaleY);
+
+            const xOffset = targetMinX + ((targetMaxX - targetMinX) - (maxLon - minLon) * scale) / 2;
+            const yOffset = targetMinY + ((targetMaxY - targetMinY) - (maxLat - minLat) * scale) / 2;
+
+            // Simple Equirectangular Projection with lat/lon clipping
+            const project = (lonLat) => {
+                const lon = lonLat[0];
+                const lat = lonLat[1];
+                const x = xOffset + (lon - minLon) * scale;
+                const y = yOffset + (maxLat - lat) * scale;
+                return [x, y];
+            };
+
+            const geometryToPath = (geometry) => {
+                if (geometry.type === "Polygon") {
+                    return geometry.coordinates.map(ring => {
+                        return "M" + ring.map(p => project(p).join(",")).join(" L") + "Z";
+                    }).join(" ");
+                } else if (geometry.type === "MultiPolygon") {
+                    return geometry.coordinates.map(polygon => {
+                        return polygon.map(ring => {
+                            return "M" + ring.map(p => project(p).join(",")).join(" L") + "Z";
+                        }).join(" ");
+                    }).join(" ");
+                }
+                return "";
+            };
+
+            // Map & Translate GeoJSON countries to PT format
+            worldCountries = data.features.map(feature => {
+                const code = feature.properties.sov_a3 || feature.properties.iso_a3;
+                const info = countryDataPT[code];
+                const pathData = geometryToPath(feature.geometry);
+                
+                // Map continent names to Portuguese standard
+                let continent = feature.properties.continent || "Other";
+                if (continent.includes("America")) {
+                    continent = "Americas";
+                }
+                if (continent === "Seven seas (open ocean)") {
+                    continent = "Oceania";
+                }
+
+                // Determine bounds for centroid calculation
+                let boundsMinX = Infinity, boundsMaxX = -Infinity, boundsMinY = Infinity, boundsMaxY = -Infinity;
+                const findBounds = (coords) => {
+                    coords.forEach(p => {
+                        if (Array.isArray(p[0])) {
+                            findBounds(p);
+                        } else {
+                            const pt = project(p);
+                            if (!isNaN(pt[0]) && !isNaN(pt[1])) {
+                                if (pt[0] < boundsMinX) boundsMinX = pt[0];
+                                if (pt[0] > boundsMaxX) boundsMaxX = pt[0];
+                                if (pt[1] < boundsMinY) boundsMinY = pt[1];
+                                if (pt[1] > boundsMaxY) boundsMaxY = pt[1];
+                            }
+                        }
+                    });
+                };
+                findBounds(feature.geometry.coordinates);
+
+                const centroid = {
+                    x: (boundsMinX !== Infinity) ? (boundsMinX + boundsMaxX) / 2 : 500,
+                    y: (boundsMinY !== Infinity) ? (boundsMinY + boundsMaxY) / 2 : 300
+                };
+
+                const name = info ? info.nome : (feature.properties.name_pt || feature.properties.name);
+                const color = regionColors[continent] || "#cbd5e1";
+
+                return {
+                    code: code,
+                    nome: name,
+                    regiao: continent,
+                    capital: info ? info.capital : "Desconhecida",
+                    gentilico: info ? info.gentilico : "Nativo",
+                    flag: info ? info.flag : "🏳️",
+                    population: feature.properties.pop_est ? feature.properties.pop_est.toLocaleString('pt-BR') : "N/D",
+                    pathD: pathData,
+                    centroid: centroid,
+                    isSolved: false,
+                    currentX: 0,
+                    currentY: 0
+                };
+            }).filter(c => c.pathD !== ""); // Filter out countries with empty path geometries
+
+            document.getElementById('totalCount').innerText = worldCountries.length;
+
+            renderPuzzleBoard();
+        }
+
+        function renderPuzzleBoard() {
+            const outlineGroup = document.getElementById('outlineGroup');
+            const placedGroup = document.getElementById('placedGroup');
+            
+            outlineGroup.innerHTML = '';
+            placedGroup.innerHTML = '';
+
+            worldCountries.forEach(country => {
+                const outlinePath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                outlinePath.setAttribute("d", country.pathD);
+                outlinePath.setAttribute("id", `target-${country.code}`);
+                outlinePath.className.baseVal = "transition-all duration-300";
+                outlineGroup.appendChild(outlinePath);
+            });
+
+            updateDifficultyVisuals();
+            populateTray();
+        }
+
+        function populateTray() {
+            const tray = document.getElementById('piecesTray');
+            tray.innerHTML = '';
+
+            const searchValue = document.getElementById('countrySearch').value.toLowerCase();
+
+            // Filter countries by continent AND search query, showing only unsolved ones
+            const unsolved = worldCountries.filter(c => {
+                const matchesContinent = (selectedContinent === 'All' || c.regiao === selectedContinent);
+                const matchesSearch = c.nome.toLowerCase().includes(searchValue);
+                return !c.isSolved && matchesContinent && matchesSearch;
+            }).sort((a, b) => a.nome.localeCompare(b.nome));
+
+            if (unsolved.length === 0) {
+                tray.innerHTML = `
+                    <div class="flex flex-col items-center justify-center text-center p-4 text-slate-500 w-full lg:h-[200px]">
+                        <i class="fa-solid fa-folder-open text-2xl mb-2"></i>
+                        <p class="text-[10px] font-bold">Nenhum país pendente</p>
+                    </div>
+                `;
+                return;
+            }
+
+            unsolved.forEach(country => {
+                const card = document.createElement('div');
+                card.className = "flex lg:flex-row flex-col items-center justify-between gap-2 p-2.5 bg-slate-900 border border-slate-800 hover:border-sky-500/50 rounded-xl cursor-pointer text-center lg:text-left transition-all shrink-0 w-[110px] lg:w-full select-none";
+                
+                card.innerHTML = `
+                    <div class="flex items-center gap-2 overflow-hidden w-full">
+                        <span class="text-xs shrink-0">${country.flag}</span>
+                        <div class="hidden lg:block truncate w-full">
+                            <p class="text-[11px] font-extrabold text-slate-200 leading-none truncate">${country.nome}</p>
+                        </div>
+                    </div>
+                    <span class="text-[9px] font-bold text-slate-400 block lg:hidden truncate w-full">${country.nome}</span>
+                `;
+
+                const handleSelection = (e) => {
+                    e.preventDefault();
+                    spawnActivePieceInCanvas(country);
+                };
+
+                card.addEventListener('click', handleSelection);
+                card.addEventListener('touchstart', handleSelection);
+
+                tray.appendChild(card);
+            });
+        }
+
+        function spawnActivePieceInCanvas(country) {
+            if (country.isSolved) return;
+
+            const activeGroup = document.getElementById('activePiecesGroup');
+            
+            // Remove previous active highlights
+            activeGroup.innerHTML = ''; 
+
+            playSynthesizedSound('grab');
+
+            const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+            g.setAttribute("id", `piece-${country.code}`);
+            g.setAttribute("filter", "url(#activeShadow)");
+
+            // Spawn piece centered in the left/middle of the map canvas
+            const spawnX = 180;
+            const spawnY = 400;
+
+            country.currentX = spawnX - country.centroid.x;
+            country.currentY = spawnY - country.centroid.y;
+
+            setPieceTransform(g, country);
+
+            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            path.setAttribute("d", country.pathD);
+            path.setAttribute("fill", country.color); 
+            path.setAttribute("stroke", "#ffffff");
+            path.setAttribute("stroke-width", "1.5"); 
+            path.setAttribute("class", "cursor-grab transition-all active:scale-102");
+            g.appendChild(path);
+
+            activeGroup.appendChild(g);
+
+            // Bind Touch & Mouse event listeners to floating piece
+            setupGroupInteractions(g, country);
+            highlightTrayCard(country.code);
+        }
+
+        function setPieceTransform(gElement, country) {
+            gElement.setAttribute("transform", `translate(${country.currentX}, ${country.currentY})`);
+        }
+
+        function highlightTrayCard(code) {
+            const cards = document.getElementById('piecesTray').querySelectorAll('div');
+            cards.forEach(card => {
+                card.classList.remove('ring-2', 'ring-sky-500', 'bg-slate-800');
+            });
+        }
+
+        function getSVGCoords(clientX, clientY) {
+            const svg = document.getElementById('puzzleCanvas');
+            const pt = svg.createSVGPoint();
+            pt.x = clientX;
+            pt.y = clientY;
+            return pt.matrixTransform(svg.getScreenCTM().inverse());
+        }
+
+        function setupGroupInteractions(gElement, country) {
+            const startDrag = (clientX, clientY) => {
+                if (country.isSolved) return; 
+
+                playSynthesizedSound('grab');
+                isDragging = true;
+                activePiece = { country: country, element: gElement };
+                
+                const svgPoint = getSVGCoords(clientX, clientY);
+                
+                // Track relative offset
+                dragStartSvg.x = svgPoint.x - country.currentX;
+                dragStartSvg.y = svgPoint.y - country.currentY;
+                
+                const path = gElement.querySelector('path');
+                if (path) {
+                    path.setAttribute("stroke-width", "2.5");
+                    path.setAttribute("stroke", "#38bdf8");
+                    path.setAttribute("class", "cursor-grabbing");
+                }
+
+                // Append to top layer
+                gElement.parentNode.appendChild(gElement);
+            };
+
+            gElement.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                startDrag(e.clientX, e.clientY);
+            });
+
+            gElement.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                if (e.touches.length > 0) {
+                    startDrag(e.touches[0].clientX, e.touches[0].clientY);
+                }
+            }, { passive: false });
+        }
+
+        const moveHandler = (clientX, clientY) => {
+            if (!isDragging || !activePiece) return;
+
+            const svgPoint = getSVGCoords(clientX, clientY);
+            const country = activePiece.country;
+
+            country.currentX = svgPoint.x - dragStartSvg.x;
+            country.currentY = svgPoint.y - dragStartSvg.y;
+
+            // Prevent dragging completely outside bounds
+            country.currentX = Math.max(-400, Math.min(800, country.currentX));
+            country.currentY = Math.max(-300, Math.min(600, country.currentY));
+
+            setPieceTransform(activePiece.element, country);
+        };
+
+        window.addEventListener('mousemove', (e) => {
+            if (isDragging) moveHandler(e.clientX, e.clientY);
+        });
+
+        window.addEventListener('touchmove', (e) => {
+            if (isDragging && e.touches.length > 0) {
+                moveHandler(e.touches[0].clientX, e.touches[0].clientY);
+            }
+        }, { passive: false });
+
+        const endDragHandler = () => {
+            if (!isDragging || !activePiece) return;
+            isDragging = false;
+
+            const country = activePiece.country;
+            const element = activePiece.element;
+            activePiece = null;
+
+            // Euclidean distance check to snap destination
+            const distance = Math.hypot(country.currentX, country.currentY);
+            const tolerance = 25; 
+
+            if (distance < tolerance) {
+                snapCountryToTarget(country, element);
+            } else {
+                playSynthesizedSound('grab');
+                setPieceTransform(element, country);
+                
+                const path = element.querySelector('path');
+                if (path) {
+                    path.setAttribute("class", "cursor-grab");
+                    path.setAttribute("stroke-width", "1.5");
+                    path.setAttribute("stroke", "#ffffff");
+                }
+            }
+        };
+
+        window.addEventListener('mouseup', endDragHandler);
+        window.addEventListener('touchend', endDragHandler);
+
+        function snapCountryToTarget(country, element) {
+            country.isSolved = true;
+            country.currentX = 0;
+            country.currentY = 0;
+
+            solvedCountries.add(country.code);
+
+            const placedGroup = document.getElementById('placedGroup');
+            element.setAttribute("transform", "translate(0, 0)");
+            element.setAttribute("filter", "url(#shadow)");
+            element.setAttribute("id", `placed-${country.code}`);
+            element.setAttribute("data-regiao", country.regiao);
+
+            const path = element.querySelector('path');
+            path.setAttribute("fill", country.color);
+            path.setAttribute("stroke", "#0f172a"); 
+            path.setAttribute("stroke-width", "0.75");
+            path.className.baseVal = "transition-all duration-300";
+
+            placedGroup.appendChild(element);
+
+            // Success feedback
+            playSynthesizedSound('snap');
+            confetti({
+                particleCount: 30,
+                spread: 50,
+                origin: { y: 0.85 }
+            });
+
+            revealDiscovery(country);
+            updateProgress();
+            populateTray();
+
+            if (solvedCountries.size === worldCountries.length) {
+                victoryCelebration();
+            }
+        }
+
+        function revealDiscovery(country) {
+            document.getElementById('discoveryEmpty').classList.add('hidden');
+            const info = document.getElementById('discoveryInfo');
+            info.classList.remove('hidden');
+
+            document.getElementById('discName').innerText = country.nome;
+            document.getElementById('discRegion').innerText = translateContinentName(country.regiao);
+            document.getElementById('discFlag').innerText = country.flag;
+        }
+
+        function translateContinentName(continent) {
+            const map = {
+                "Americas": "Américas",
+                "Europe": "Europa",
+                "Asia": "Ásia",
+                "Africa": "África",
+                "Oceania": "Oceania",
+                "Antarctica": "Antártida"
+            };
+            return map[continent] || continent;
+        }
+
+        function updateRegionColor(regiao, newColor) {
+            regionColors[regiao] = newColor;
+
+            worldCountries.forEach(country => {
+                if (country.regiao === regiao) {
+                    country.color = newColor;
+                }
+            });
+
+            const picker = document.getElementById(`picker-${regiao}`);
+            if (picker) picker.value = newColor;
+
+            // Dynamically recolor elements already snapped to map
+            const snaps = document.querySelectorAll(`#placedGroup [data-regiao="${regiao}"] path`);
+            snaps.forEach(path => {
+                path.setAttribute("fill", newColor);
+            });
+
+            // Recolor floating piece if currently active
+            const activeGroup = document.getElementById('activePiecesGroup');
+            const activeElement = activeGroup.querySelector('g');
+            if (activeElement) {
+                const activeCode = activeElement.id.replace('piece-', '');
+                const country = worldCountries.find(c => c.code === activeCode);
+                if (country && country.regiao === regiao) {
+                    const path = activeElement.querySelector('path');
+                    if (path) path.setAttribute("fill", newColor);
+                }
+            }
+        }
+
+        function restoreDefaultColors() {
+            Object.keys(defaultColors).forEach(regiao => {
+                updateRegionColor(regiao, defaultColors[regiao]);
+            });
+        }
+
+        function updateProgress() {
+            const solvedCount = solvedCountries.size;
+            document.getElementById('solvedCount').innerText = solvedCount;
+            
+            const pct = (solvedCount / worldCountries.length) * 100;
+            document.getElementById('gameProgressBar').style.width = `${pct}%`;
+        }
+
+        function setContinentFilter(continent) {
+            selectedContinent = continent;
+            
+            // Toggle active tabs style
+            const tabs = ["All", "Americas", "Europe", "Asia", "Africa", "Oceania", "Antarctica"];
+            tabs.forEach(tab => {
+                const btn = document.getElementById(`tab-${tab}`);
+                if (tab === continent) {
+                    btn.className = "px-2 py-1 rounded bg-slate-950 border border-sky-500/40 text-sky-400 shrink-0";
+                } else {
+                    btn.className = "px-2 py-1 rounded bg-slate-950/40 hover:bg-slate-950 shrink-0 text-slate-400";
+                }
+            });
+
+            populateTray();
+        }
+
+        function filterTray() {
+            populateTray();
+        }
+
+        function victoryCelebration() {
+            clearInterval(timerInterval);
+            playSynthesizedSound('victory');
+
+            const duration = 5 * 1000;
+            const end = Date.now() + duration;
+
+            (function frame() {
+                confetti({
+                    particleCount: 6,
+                    angle: 60,
+                    spread: 55,
+                    origin: { x: 0 }
+                });
+                confetti({
+                    particleCount: 6,
+                    angle: 120,
+                    spread: 55,
+                    origin: { x: 1 }
+                });
+
+                if (Date.now() < end) {
+                    requestAnimationFrame(frame);
+                }
+            }());
+
+            setTimeout(() => {
+                const modal = document.createElement('div');
+                modal.className = "fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 z-[9999]";
+                modal.innerHTML = `
+                    <div class="bg-slate-900 border border-slate-800 p-8 rounded-3xl max-w-md w-full text-center shadow-2xl animate-bounce">
+                        <span class="text-6xl mb-4 block">🏆</span>
+                        <h2 class="text-2xl font-black text-white mb-2">Desafio Concluído!</h2>
+                        <p class="text-sm text-slate-300 mb-6">Incrível! Você mapeou com precisão as nações do planeta no modo <strong>${gameDifficulty === 'EASY' ? 'Fácil' : 'Difícil'}</strong> em um tempo fantástico de <strong>${formatTime(timeElapsed)}</strong>!</p>
+                        <button onclick="this.parentNode.parentNode.remove()" class="w-full py-3 bg-gradient-to-r from-sky-500 to-indigo-500 hover:from-sky-600 hover:to-indigo-600 text-white rounded-xl text-xs font-bold transition-all shadow-lg">Continuar Explorando</button>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+            }, 600);
+        }
+
+        function changeDifficulty(diff) {
+            gameDifficulty = diff;
+            const btnEasy = document.getElementById('btn-easy');
+            const btnHard = document.getElementById('btn-hard');
+
+            if (diff === 'EASY') {
+                btnEasy.className = "px-3 py-1.5 rounded-lg text-sky-400 bg-slate-950/80 shadow-md transition-all";
+                btnHard.className = "px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition-all";
+            } else {
+                btnHard.className = "px-3 py-1.5 rounded-lg text-sky-400 bg-slate-950/80 shadow-md transition-all";
+                btnEasy.className = "px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition-all";
+            }
+
+            updateDifficultyVisuals();
+        }
+
+        function updateDifficultyVisuals() {
+            const outlineGroup = document.getElementById('outlineGroup');
+            
+            worldCountries.forEach(country => {
+                const target = document.getElementById(`target-${country.code}`);
+                if (!target) return;
+
+                if (gameDifficulty === 'EASY') {
+                    // Show subtle guide outlines
+                    target.setAttribute("stroke", "#1e293b"); 
+                    target.setAttribute("stroke-width", "0.5");
+                    target.setAttribute("fill", "#111827"); 
+                    target.setAttribute("class", "pulse-outline");
+                } else {
+                    // Hide outlines completely for pure geographic guessing
+                    target.setAttribute("stroke", "transparent");
+                    target.setAttribute("stroke-width", "0");
+                    target.setAttribute("fill", "transparent");
+                    target.classList.remove("pulse-outline");
+                }
+            });
+        }
+
+        function startTimer() {
+            timeElapsed = 0;
+            if (timerInterval) clearInterval(timerInterval);
+            
+            timerInterval = setInterval(() => {
+                timeElapsed++;
+                document.getElementById('timerText').innerHTML = `<i class="fa-regular fa-clock"></i> ${formatTime(timeElapsed)}`;
+            }, 1000);
+        }
+
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        // Reset game completely
+        function resetGame() {
+            clearInterval(timerInterval);
+            timeElapsed = 0;
+            solvedCountries.clear();
+            
+            document.getElementById('activePiecesGroup').innerHTML = '';
+            document.getElementById('countrySearch').value = '';
+
+            worldCountries.forEach(c => {
+                c.isSolved = false;
+                c.currentX = 0;
+                c.currentY = 0;
+                c.color = regionColors[c.regiao];
+            });
+
+            document.getElementById('discoveryInfo').classList.add('hidden');
+            document.getElementById('discoveryEmpty').classList.remove('hidden');
+
+            renderPuzzleBoard();
+            updateProgress();
+            startTimer();
+            playSynthesizedSound('victory'); 
+        }
+    </script>
+</body>
+</html>
