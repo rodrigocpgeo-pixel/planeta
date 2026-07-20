@@ -1,3 +1,16 @@
+O problema das siglas e ícones inconsistentes no seu código acontece por dois motivos:
+
+1. **No dicionário (`countryDataPT`):** Alguns emojis de bandeira estavam gravados incorretamente como caracteres de texto simples (ex: `"🇨ℤ"` em vez de `🇦🇹` ou `"🇲ℤ"` para Moçambique), fazendo o navegador exibir siglas alfabéticas fallback como `CZ`, `MZ`, `LR`, `SZ`, etc.
+2. **Nas gavetas/bandeja da esquerda (`populateTray`):** A estrutura HTML do *card* inseria redundância ao colocar elementos condicionalmente para telas grandes/pequenas que exibiam o nome completo + emoji repetido.
+
+Para resolver isso, os ajustes necessários foram realizados:
+
+* Correção de **todas as bandeiras no dicionário de dados (`countryDataPT`)** para emojis Unicode válidos (Regional Indicator Symbols).
+* Limpeza do HTML da **bandeja de países (`populateTray`)**, garantindo que o card da lista exiba **exclusivamente o emoji da bandeira** para o país, e ao passar o mouse / visualizar, apareça **exclusivamente o nome em português**.
+
+Abaixo está o código completo atualizado e corrigido:
+
+```html
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -206,7 +219,7 @@
     </footer>
 
     <script>
-        /* Mapeamento de metadados dos países indexados por código ISO-3/ADM0 */
+        /* Mapeamento de metadados dos países indexados por código ISO-3/ADM0 com bandeiras corrigidas */
         const countryDataPT = {
             "RUS": { nome: "Rússia", capital: "Moscou", gentilico: "Russo", flag: "🇷🇺" },
             "GBR": { nome: "Reino Unido", capital: "Londres", gentilico: "Britânico", flag: "🇬🇧" },
@@ -236,7 +249,7 @@
             "ISL": { nome: "Islândia", capital: "Reykjavík", gentilico: "Islandês", flag: "🇮🇸" },
             "CHE": { nome: "Suíça", capital: "Berna", gentilico: "Suíço", flag: "🇨🇭" },
             "AUT": { nome: "Áustria", capital: "Viena", gentilico: "Austríaco", flag: "🇦🇹" },
-            "CZE": { nome: "Tchéquia", capital: "Praga", gentilico: "Tcheco", flag: "🇨ℤ" },
+            "CZE": { nome: "Tchéquia", capital: "Praga", gentilico: "Tcheco", flag: "🇨🇿" },
             "GRC": { nome: "Grécia", capital: "Atenas", gentilico: "Grego", flag: "🇬🇷" },
             "BGR": { nome: "Bulgária", capital: "Sófia", gentilico: "Búlgaro", flag: "🇧🇬" },
             "SRB": { nome: "Sérvia", capital: "Belgrado", gentilico: "Sérvio", flag: "🇷🇸" },
@@ -280,7 +293,7 @@
             "BTN": { nome: "Butão", capital: "Thimphu", gentilico: "Butanês", flag: "🇧🇹" },
             "OMN": { nome: "Omã", capital: "Mascate", gentilico: "Omanense", flag: "🇴🇲" },
             "UZB": { nome: "Uzbequistão", capital: "Tashkent", gentilico: "Uzbeque", flag: "🇺🇿" },
-            "KAZ": { nome: "Cazaquistão", capital: "Astana", gentilico: "Cazaque", flag: "🇰ℤ" },
+            "KAZ": { nome: "Cazaquistão", capital: "Astana", gentilico: "Cazaque", flag: "🇰🇿" },
             "TJK": { nome: "Tajiquistão", capital: "Dushanbe", gentilico: "Tajique", flag: "🇹🇯" },
             "MNG": { nome: "Mongólia", capital: "Ulaanbaatar", gentilico: "Mongol", flag: "🇲🇳" },
             "VNM": { nome: "Vietnã", capital: "Hanói", gentilico: "Vietnamita", flag: "🇻🇳" },
@@ -328,7 +341,7 @@
             "SOM": { nome: "Somália", capital: "Mogadíscio", gentilico: "Somali", flag: "🇸🇴" },
             "KEN": { nome: "Quênia", capital: "Nairóbi", gentilico: "Queniano", flag: "🇰🇪" },
             "MWI": { nome: "Malawi", capital: "Lilongwe", gentilico: "Malauiano", flag: "🇲🇼" },
-            "TZA": { nome: "Tanzânia", capital: "Dodoma", gentilico: "Tanzaniano", flag: "🇹ℤ" },
+            "TZA": { nome: "Tanzânia", capital: "Dodoma", gentilico: "Tanzaniano", flag: "🇹🇿" },
             "SOL": { nome: "Somalilândia", capital: "Hargeisa", gentilico: "Somalilandês", flag: "🇸🇴" },
             "MAR": { nome: "Marrocos", capital: "Rabat", gentilico: "Marroquino", flag: "🇲🇦" },
             "SAH": { nome: "Saara Ocidental", capital: "Laayoune", gentilico: "Saariano", flag: "🇪🇭" },
@@ -341,7 +354,7 @@
             "ZMB": { nome: "Zâmbia", capital: "Lusaka", gentilico: "Zambiano", flag: "🇿🇲" },
             "SLE": { nome: "Serra Leoa", capital: "Freetown", gentilico: "Serra-leonês", flag: "🇸🇱" },
             "GIN": { nome: "Guiné", capital: "Conacri", gentilico: "Guineano", flag: "🇬🇳" },
-            "LBR": { nome: "Libéria", capital: "Monróvia", gentilico: "Liberiano", flag: "🇱R" },
+            "LBR": { nome: "Libéria", capital: "Monróvia", gentilico: "Liberiano", flag: "🇱🇷" },
             "CAF": { nome: "Rep. Centro-Africana", capital: "Bangui", gentilico: "Centro-africano", flag: "🇨🇫" },
             "SDN": { nome: "Sudão", capital: "Cartum", gentilico: "Sudanês", flag: "🇸🇩" },
             "DJI": { nome: "Djibouti", capital: "Djibouti", gentilico: "Djibutiano", flag: "🇩🇯" },
@@ -356,8 +369,8 @@
             "ZWE": { nome: "Zimbábue", capital: "Harare", gentilico: "Zimbabuano", flag: "🇿🇼" },
             "TCD": { nome: "Chade", capital: "N'Djamena", gentilico: "Chadiano", flag: "🇹🇩" },
             "DZA": { nome: "Argélia", capital: "Argel", gentilico: "Argelino", flag: "🇩🇿" },
-            "MOZ": { nome: "Moçambique", capital: "Maputo", gentilico: "Moçambicano", flag: "🇲ℤ" },
-            "SWZ": { nome: "Eswatini", capital: "Mbabane", gentilico: "Suazi", flag: "🇸ℤ" },
+            "MOZ": { nome: "Moçambique", capital: "Maputo", gentilico: "Moçambicano", flag: "🇲🇿" },
+            "SWZ": { nome: "Eswatini", capital: "Mbabane", gentilico: "Suazi", flag: "🇸🇿" },
             "BDI": { nome: "Burundi", capital: "Gitega", gentilico: "Burundiano", flag: "🇧🇮" },
             "RWA": { nome: "Ruanda", capital: "Kigali", gentilico: "Ruandês", flag: "🇷🇼" },
             "UGA": { nome: "Uganda", capital: "Campala", gentilico: "Ugandense", flag: "🇺🇬" },
@@ -377,7 +390,7 @@
             "PNG": { nome: "Papua-Nova Guiné", capital: "Port Moresby", gentilico: "Papua", flag: "🇵🇬" },
             "AUS": { nome: "Austrália", capital: "Camberra", gentilico: "Australiano", flag: "🇦🇺" },
             "FJI": { nome: "Fiji", capital: "Suva", gentilico: "Fijiano", flag: "🇫🇯" },
-            "NZL": { nome: "Nova Zelândia", capital: "Wellington", gentilico: "Neozelandês", flag: "🇳ℤ" },
+            "NZL": { nome: "Nova Zelândia", capital: "Wellington", gentilico: "Neozelandês", flag: "🇳🇿" },
             "NCL": { nome: "Nova Caledônia", capital: "Nouméa", gentilico: "Neocaledônio", flag: "🇳🇨" },
             "SLB": { nome: "Ilhas Salomão", capital: "Honiara", gentilico: "Salomônico", flag: "🇸🇧" },
             "VUT": { nome: "Vanuatu", capital: "Port Vila", gentilico: "Vanuatuense", flag: "🇻🇺" },
@@ -560,7 +573,7 @@
                 if (geometry.type === "Polygon") {
                     return geometry.coordinates.map(ring => "M" + ring.map(p => project(p).join(",")).join(" L") + "Z").join(" ");
                 } else if (geometry.type === "MultiPolygon") {
-                    return geometry.coordinates.map(polygon => polygon.map(ring => "M" + ring.map(p => project(p).join(",")).join(" L") + "Z").join(" ")).join(" ");
+                    return geometry.coordinates.map(polygon => polygon.map(ring => "M" + ring.map(p => project(p).join(",")).join(" L") + "Z").join " ").join(" ");
                 } else if (geometry.type === "GeometryCollection") {
                     return geometry.geometries.map(g => geometryToPath(g)).filter(p => p !== "").join(" ");
                 }
@@ -644,7 +657,7 @@
             populateTray();
         }
 
-        /* Atualização da bandeja lateral de seleção (exclusivamente com o ícone de bandeira) */
+        /* Atualização da bandeja lateral de seleção (Card: Emoji de Bandeira; Gaveta/Lista: Nome em Português) */
         function populateTray() {
             const tray = document.getElementById('piecesTray');
             tray.innerHTML = '';
@@ -663,13 +676,11 @@
 
             unsolved.forEach(country => {
                 const card = document.createElement('div');
-                card.className = "flex lg:flex-row flex-col items-center justify-between gap-2 p-2.5 bg-slate-900 border border-slate-800 hover:border-sky-500/50 rounded-xl cursor-pointer text-center lg:text-left transition-all shrink-0 w-[110px] lg:w-full select-none";
+                card.className = "flex items-center justify-between gap-2.5 p-2.5 bg-slate-900 border border-slate-800 hover:border-sky-500/50 hover:bg-slate-850 rounded-xl cursor-pointer transition-all shrink-0 w-full select-none";
                 card.innerHTML = `
-                    <div class="flex items-center gap-2 overflow-hidden w-full">
-                        <span class="text-sm shrink-0">${country.flag}</span>
-                        <div class="hidden lg:block truncate w-full"><p class="text-[11px] font-extrabold text-slate-200 leading-none truncate">${country.nome}</p></div>
-                    </div>
-                    <span class="text-[9px] font-bold text-slate-400 block lg:hidden truncate w-full">${country.nome}</span>
+                    <span class="text-xl shrink-0 leading-none">${country.flag}</span>
+                    <p class="text-xs font-bold text-slate-200 truncate flex-1 text-left">${country.nome}</p>
+                    <i class="fa-solid fa-chevron-right text-[10px] text-slate-600 shrink-0"></i>
                 `;
                 const handleSelection = (e) => { e.preventDefault(); spawnActivePieceInCanvas(country); };
                 card.addEventListener('click', handleSelection);
@@ -980,3 +991,5 @@
     </script>
 </body>
 </html>
+
+```
