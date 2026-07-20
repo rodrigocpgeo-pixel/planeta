@@ -48,6 +48,10 @@
             </div>
             
             <div class="flex items-center gap-3 flex-wrap">
+                <!-- Controle de Mudo de Áudio -->
+                <button onclick="toggleMute()" id="muteBtn" class="px-3 py-1.5 bg-slate-900 hover:bg-slate-850 border border-slate-800 rounded-xl text-xs font-bold text-slate-300 flex items-center gap-1.5 transition-all">
+                    <i class="fa-solid fa-volume-high text-sky-400" id="muteIcon"></i> <span id="muteText">Som Ativo</span>
+                </button>
                 <button onclick="resetGame()" class="px-3 py-1.5 bg-slate-900 hover:bg-slate-850 border border-slate-800 rounded-xl text-xs font-bold text-slate-300 flex items-center gap-1.5 transition-all">
                     <i class="fa-solid fa-rotate-left"></i> Reiniciar Jogo
                 </button>
@@ -387,6 +391,7 @@
         let timerInterval = null;
         let timeElapsed = 0; 
         let selectedContinent = 'All';
+        let isMuted = false;
 
         /* Esquema de cores por padrão regional */
         const defaultColors = {
@@ -405,8 +410,23 @@
         let mapPanX = 0;
         let mapPanY = 0;
 
+        /* Alternância do modo silencioso de áudio */
+        function toggleMute() {
+            isMuted = !isMuted;
+            const muteIcon = document.getElementById('muteIcon');
+            const muteText = document.getElementById('muteText');
+            if (isMuted) {
+                muteIcon.className = "fa-solid fa-volume-xmark text-red-400";
+                muteText.innerText = "Mudo";
+            } else {
+                muteIcon.className = "fa-solid fa-volume-high text-sky-400";
+                muteText.innerText = "Som Ativo";
+            }
+        }
+
         /* Síntese sonora via Web Audio API */
         function playSynthesizedSound(type) {
+            if (isMuted) return;
             try {
                 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 const osc = audioCtx.createOscillator();
