@@ -502,12 +502,36 @@
             initGame();
         };
 
-        function initGame() {
-            // Check if external worldGeoJSON database loaded correctly
-            if (typeof worldGeoJSON === 'undefined') {
+        // Adicione esta constante no início dos seus scripts
+const GEOJSON_URL = 'https://raw.githubusercontent.com/SEU-USUARIO/SEU-REPOSITORIO/main/paises.geojson';
+
+function initGame() {
+    // Tenta carregar o arquivo externo do GitHub
+    fetch(GEOJSON_URL)
+        .then(response => {
+            if (!response.ok) throw new Error("Erro na rede ao buscar o GeoJSON");
+            return response.json();
+        })
+        .then(data => {
+            processGeoJSON(data);
+            document.getElementById('gameLoader').style.opacity = '0';
+            setTimeout(() => {
+                document.getElementById('gameLoader').style.display = 'none';
+            }, 300);
+            startTimer();
+        })
+        .catch(err => {
+            console.error("Falha ao carregar o arquivo do GitHub, tentando backup local...", err);
+            // Backup: se falhar o GitHub, tenta carregar o dado que já está no código
+            if (typeof worldGeoJSON !== 'undefined') {
+                processGeoJSON(worldGeoJSON);
+                document.getElementById('gameLoader').style.display = 'none';
+                startTimer();
+            } else {
                 showErrorBanner();
-                return;
             }
+        });
+}
             
             try {
                 processGeoJSON(worldGeoJSON);
