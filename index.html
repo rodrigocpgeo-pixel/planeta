@@ -6,7 +6,7 @@
     <title>Quebra-Cabeça do Mundo - Edição Globo Terrestre</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.preconnect.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
@@ -37,7 +37,7 @@
         <div class="max-w-7xl mx-auto flex flex-col lg:flex-row justify-between items-center gap-4">
             <div class="flex items-center gap-3">
                 <div class="bg-sky-500/10 p-2.5 rounded-xl border border-sky-500/20 text-sky-400">
-                    <i class="fa-solid fa-earth-americas text-2xl animate-spin-slow"></i>
+                    <i class="fa-solid fa-earth-americas text-2xl"></i>
                 </div>
                 <div>
                     <h1 class="text-lg md:text-xl font-black tracking-tight flex items-center gap-2">
@@ -187,6 +187,13 @@
                             <filter id="activeShadow" x="-30%" y="-30%" width="160%" height="160%">
                                 <feDropShadow dx="3" dy="6" stdDeviation="5" flood-color="#000" flood-opacity="0.8" />
                             </filter>
+                            <!-- Gradiente bicontinental dinâmico da Rússia (Europa / Montes Urais / Ásia) -->
+                            <linearGradient id="russiaBicontinentalGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop id="rusGradEuro1" offset="0%" stop-color="#3b82f6" />
+                                <stop id="rusGradEuro2" offset="26%" stop-color="#3b82f6" />
+                                <stop id="rusGradAsia1" offset="26%" stop-color="#ec4899" />
+                                <stop id="rusGradAsia2" offset="100%" stop-color="#ec4899" />
+                            </linearGradient>
                         </defs>
                         <g id="mapViewportGroup">
                             <g id="outlineGroup" class="transition-all duration-300"></g>
@@ -596,6 +603,13 @@
 
                 const iso2Code = info ? info.iso2 : (props.iso_a2 ? props.iso_a2.toLowerCase() : "un");
 
+                // Cálculo da proporção geográfica da linha dos Montes Urais (~60° Leste) para a Rússia
+                let uralSplitPercent = 26;
+                if (code === "RUS" && boundsMinX !== Infinity && boundsMaxX > boundsMinX) {
+                    const uralX = project([60, 55])[0];
+                    uralSplitPercent = Math.max(15, Math.min(45, ((uralX - boundsMinX) / (boundsMaxX - boundsMinX)) * 100));
+                }
+
                 return {
                     code: code,
                     nome: info ? info.nome : (props.name_pt || props.name || "Desconhecido"),
@@ -609,12 +623,37 @@
                     isSolved: false,
                     currentX: 0,
                     currentY: 0,
-                    color: regionColors[continent] || "#cbd5e1"
+                    color: (code === "RUS") ? "url(#russiaBicontinentalGradient)" : (regionColors[continent] || "#cbd5e1"),
+                    uralSplitPercent: uralSplitPercent
                 };
             }).filter(c => c !== null && c.pathD !== "");
 
+            // Atualiza os stops do gradiente da Rússia conforme os Urais e as cores continentais
+            syncRussiaGradientStops();
+
             document.getElementById('totalCount').innerText = worldCountries.length;
             renderPuzzleBoard();
+        }
+
+        function syncRussiaGradientStops() {
+            const rus = worldCountries.find(c => c.code === "RUS");
+            const splitPct = rus ? rus.uralSplitPercent.toFixed(1) : "26";
+            const euroColor = regionColors["Europe"] || "#3b82f6";
+            const asiaColor = regionColors["Asia"] || "#ec4899";
+
+            const stopE1 = document.getElementById('rusGradEuro1');
+            const stopE2 = document.getElementById('rusGradEuro2');
+            const stopA1 = document.getElementById('rusGradAsia1');
+            const stopA2 = document.getElementById('rusGradAsia2');
+
+            if (stopE1 && stopE2 && stopA1 && stopA2) {
+                stopE1.setAttribute('stop-color', euroColor);
+                stopE2.setAttribute('stop-color', euroColor);
+                stopE2.setAttribute('offset', `${splitPct}%`);
+                stopA1.setAttribute('stop-color', asiaColor);
+                stopA1.setAttribute('offset', `${splitPct}%`);
+                stopA2.setAttribute('stop-color', asiaColor);
+            }
         }
 
         function renderPuzzleBoard() {
@@ -642,7 +681,11 @@
             const searchValue = document.getElementById('countrySearch').value.toLowerCase();
 
             const unsolved = worldCountries.filter(c => {
-                const matchesContinent = (selectedContinent === 'All' || c.regiao === selectedContinent);
+                // A Rússia pertence tanto à Europa quanto à Ásia, aparecendo em ambos os filtros
+                const isRussia = (c.code === 'RUS');
+                const matchesContinent = (selectedContinent === 'All') ||
+                    (c.regiao === selectedContinent) ||
+                    (isRussia && (selectedContinent === 'Europe' || selectedContinent === 'Asia'));
                 const matchesSearch = c.nome.toLowerCase().includes(searchValue);
                 return !c.isSolved && matchesContinent && matchesSearch;
             }).sort((a, b) => a.nome.localeCompare(b.nome));
@@ -666,7 +709,6 @@
             });
         }
 
-        /* Cálculo dinâmico para garantir que a peça nasça no CENTRO VISÍVEL DO MAPA com Zoom/Pan ativos */
         function getMapViewportCenter() {
             const defaultCenterX = 500;
             const defaultCenterY = 300;
@@ -686,7 +728,6 @@
             g.setAttribute("id", `piece-${country.code}`);
             g.setAttribute("filter", "url(#activeShadow)");
 
-            // Ajuste automático do centro da visualização atual
             const viewCenter = getMapViewportCenter();
             country.currentX = viewCenter.x - country.centroid.x;
             country.currentY = viewCenter.y - country.centroid.y;
@@ -859,7 +900,10 @@
             const info = document.getElementById('discoveryInfo');
             info.classList.remove('hidden');
             document.getElementById('discName').innerText = country.nome;
-            document.getElementById('discRegion').innerText = translateContinentName(country.regiao);
+            // Classificação pedagógica transcontinental para a Rússia
+            document.getElementById('discRegion').innerText = country.code === 'RUS' 
+                ? "Europa e Ásia (Transcontinental)" 
+                : translateContinentName(country.regiao);
             
             const flagImg = document.getElementById('discFlagImg');
             flagImg.src = country.flagUrl;
@@ -873,16 +917,30 @@
 
         function updateRegionColor(regiao, newColor) {
             regionColors[regiao] = newColor;
-            worldCountries.forEach(country => { if (country.regiao === regiao) country.color = newColor; });
+            worldCountries.forEach(country => { 
+                if (country.code !== "RUS" && country.regiao === regiao) {
+                    country.color = newColor;
+                }
+            });
             const picker = document.getElementById(`picker-${regiao}`);
             if (picker) picker.value = newColor;
 
-            document.querySelectorAll(`#placedGroup [data-regiao="${regiao}"] path`).forEach(path => path.setAttribute("fill", newColor));
+            // Atualiza os gradientes bicontinentais caso altere Europa ou Ásia
+            if (regiao === "Europe" || regiao === "Asia") {
+                syncRussiaGradientStops();
+            }
+
+            document.querySelectorAll(`#placedGroup [data-regiao="${regiao}"] path`).forEach(path => {
+                const parentG = path.closest('g');
+                if (parentG && parentG.id === 'placed-RUS') return;
+                path.setAttribute("fill", newColor);
+            });
+
             const activeElement = document.getElementById('activePiecesGroup').querySelector('g');
             if (activeElement) {
                 const activeCode = activeElement.id.replace('piece-', '');
                 const country = worldCountries.find(c => c.code === activeCode);
-                if (country && country.regiao === regiao) {
+                if (country && country.code !== "RUS" && country.regiao === regiao) {
                     const path = activeElement.querySelector('path');
                     if (path) path.setAttribute("fill", newColor);
                 }
@@ -904,7 +962,7 @@
             ["All", "Americas", "Europe", "Asia", "Africa", "Oceania", "Antarctica"].forEach(tab => {
                 const btn = document.getElementById(`tab-${tab}`);
                 btn.className = tab === continent 
-                    ? "px-2 py-1 rounded bg-slate-950 border border-sky-500/40 text-sky-400 shrink-0"
+                    ? "px-2 py-1 rounded bg-slate-950 border border-sky-500/40 text-sky-400 shrink-0" 
                     : "px-2 py-1 rounded bg-slate-950/40 hover:bg-slate-950 shrink-0 text-slate-400";
             });
             populateTray();
@@ -963,8 +1021,9 @@
                 c.isSolved = false; 
                 c.currentX = 0; 
                 c.currentY = 0; 
-                c.color = regionColors[c.regiao];
+                c.color = (c.code === "RUS") ? "url(#russiaBicontinentalGradient)" : regionColors[c.regiao];
             });
+            syncRussiaGradientStops();
             document.getElementById('discoveryInfo').classList.add('hidden');
             document.getElementById('discoveryEmpty').classList.remove('hidden');
             renderPuzzleBoard();
@@ -974,5 +1033,3 @@
     </script>
 </body>
 </html>
-
-```
