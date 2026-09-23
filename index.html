@@ -730,6 +730,7 @@
                 pathEurope.setAttribute("d", country.pathD);
                 pathEurope.setAttribute("fill", regionColors["Europe"]);
                 pathEurope.setAttribute("clip-path", "url(#clip-russia-europe)");
+                pathEurope.setAttribute("data-rus-region", "Europe");
                 pathEurope.setAttribute("class", "rus-part rus-europe cursor-grab");
                 g.appendChild(pathEurope);
 
@@ -738,6 +739,7 @@
                 pathAsia.setAttribute("d", country.pathD);
                 pathAsia.setAttribute("fill", regionColors["Asia"]);
                 pathAsia.setAttribute("clip-path", "url(#clip-russia-asia)");
+                pathAsia.setAttribute("data-rus-region", "Asia");
                 pathAsia.setAttribute("class", "rus-part rus-asia cursor-grab");
                 g.appendChild(pathAsia);
 
@@ -924,7 +926,8 @@
 
             if (country.code === 'RUS') {
                 element.querySelectorAll('.rus-part').forEach(p => {
-                    p.className.baseVal = "rus-part transition-all duration-300";
+                    p.classList.remove('cursor-grab', 'cursor-grabbing');
+                    p.classList.add('transition-all', 'duration-300');
                 });
                 const outline = element.querySelector('.rus-outline');
                 if (outline) {
@@ -989,12 +992,12 @@
                 }
             });
 
-            // Atualiza a parte correspondente da Rússia (posicionada ou sendo arrastada)
+            // Atualiza a parte correspondente da Rússia (esteja em movimento ou já encaixada)
             if (regiao === "Europe") {
-                document.querySelectorAll('.rus-europe').forEach(p => p.setAttribute('fill', newColor));
+                document.querySelectorAll('[data-rus-region="Europe"], .rus-europe').forEach(p => p.setAttribute('fill', newColor));
             }
             if (regiao === "Asia") {
-                document.querySelectorAll('.rus-asia').forEach(p => p.setAttribute('fill', newColor));
+                document.querySelectorAll('[data-rus-region="Asia"], .rus-asia').forEach(p => p.setAttribute('fill', newColor));
             }
 
             const activeElement = document.getElementById('activePiecesGroup').querySelector('g');
